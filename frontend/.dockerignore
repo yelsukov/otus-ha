@@ -1,0 +1,15 @@
+# compiled output
+/dist
+/tmp
+/out-tsc
+
+# dependencies
+/node_modules
+
+# IDEs and editors
+/.idea
+
+.gitignore
+karma.conf.js
+.editorconfig
+README.md

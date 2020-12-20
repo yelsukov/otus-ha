@@ -1,0 +1,114 @@
+<div class="col-md-6 offset-md-3 mt-5">
+    <div *ngIf="!initiated" class="spinner-border spinner-border-sm"></div>
+    <div *ngIf="initiated" class="card card-container">
+        <div class="profile-img-container">
+            <img
+                id="profile-img"
+                src="//ssl.gstatic.com/accounts/ui/avatar_2x.png"
+                class="card-img-top"
+            />
+        </div>
+        <h4 class="card-header">My Profile</h4>
+        <div class="card-body">
+            <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input id="username" type="text" class="form-control"
+                           formControlName="username"
+                           [(ngModel)]="profile.username"
+                           [ngClass]="{ 'is-invalid': submitted && f.username.errors }"/>
+                    <div *ngIf="submitted && f.username.errors" class="invalid-feedback">
+                        <div *ngIf="f.username.errors.required">Username is required</div>
+                        <div *ngIf="f.username.errors.minlength">Username must be at least 5 characters</div>
+                        <div *ngIf="f.username.errors.maxlength">Username must be less than 30 characters</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="first-name">First Name</label>
+                    <input id="first-name" type="text" class="form-control"
+                           formControlName="firstName"
+                           [(ngModel)]="profile.firstName"
+                           [ngClass]="{ 'is-invalid': submitted && f.firstName.errors }"
+                    />
+                    <div *ngIf="submitted && f.firstName.errors" class="invalid-feedback">
+                        <div *ngIf="f.firstName.errors.maxlength">First Name must be less than 20 characters</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="last-name">Last Name</label>
+                    <input id="last-name" type="text" class="form-control"
+                           formControlName="lastName"
+                           [(ngModel)]="profile.lastName"
+                           [ngClass]="{ 'is-invalid': submitted && f.lastName.errors }"
+                    />
+                    <div *ngIf="submitted && f.lastName.errors" class="invalid-feedback">
+                        <div *ngIf="f.lastName.errors.maxlength">Last Name must be less than 30 characters</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="age">Age</label>
+                    <input id="age" type="number" class="form-control"
+                           formControlName="age"
+                           [(ngModel)]="profile.age"
+                           [ngClass]="{ 'is-invalid': submitted && f.age.errors }"
+                    />
+                    <div *ngIf="submitted && f.age.errors" class="invalid-feedback">
+                        <div *ngIf="f.age.errors.min">You're too young for this shit. Go away and don't come back until
+                            you grow up
+                        </div>
+                        <div *ngIf="f.age.errors.max">Immortal or undead persons are not allowed here</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Gender</label><br/>
+                    <div class="form-check-inline">
+                        <label class="form-check-label">
+                            <input type="radio" class="form-check-input" formControlName="gender" value="m"
+                                   [(ngModel)]="profile.gender">Male
+                        </label>
+                    </div>
+                    <div class="form-check-inline">
+                        <label class="form-check-label">
+                            <input type="radio" class="form-check-input" formControlName="gender" value="f"
+                                   [(ngModel)]="profile.gender">Female
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="city">City</label>
+                    <input id="city" type="text" class="form-control"
+                           formControlName="city"
+                           [(ngModel)]="profile.city"
+                           [ngClass]="{ 'is-invalid': submitted && f.city.errors }"
+                    />
+                    <div *ngIf="submitted && f.city.errors" class="invalid-feedback">
+                        <div *ngIf="f.city.errors.maxlength">City must be less than 80 characters. Otherwise please
+                            migrate to another location
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="interests">Interests</label>
+                    <textarea id="interests" type="text" class="form-control"
+                              formControlName="interests"
+                              [(ngModel)]="profile.interests"
+                              [ngClass]="{ 'is-invalid': submitted && f.interests.errors }">
+                    </textarea>
+                    <div *ngIf="submitted && f.interests.errors" class="invalid-feedback">
+                        <div *ngIf="f.interests.errors.maxlength">
+                            You have to many interests. Please be more boring and describe it in 500 symbols
+                        </div>
+                    </div>
+                </div>
+
+                <button [disabled]="loading && f.untouched" class="btn btn-primary">
+                    <span *ngIf="loading" class="spinner-border spinner-border-sm mr-1"></span>
+                    Update
+                </button>
+                <a [routerLink]="['/user', profile.id]" class="float-right">View My Page</a>
+            </form>
+        </div>
+    </div>
+</div>
+

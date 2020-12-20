@@ -1,0 +1,57 @@
+<div class="col-md-6 offset-md-3 mt-5">
+    <div *ngIf="user" class="card card-container">
+        <div *ngIf="!initiated" class="spinner-border spinner-border-sm"></div>
+        <div *ngIf="initiated" class="card">
+            <div class="profile-img-container">
+                <span *ngIf="user.isFriend" class="badge badge-success friend">my friend</span>
+                <span *ngIf="isCurrentUser" class="badge badge-info friend">it is you</span>
+                <img
+                    id="profile-img"
+                    src="//ssl.gstatic.com/accounts/ui/avatar_2x.png"
+                    class="card-img-top"
+                />
+            </div>
+            <div class="card-body">
+                <h4 class="card-header">
+                    {{user.username}}
+                </h4>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-3">Name</dt>
+                        <dd class="col-sm-9">{{user.firstName}} {{user.lastName}}</dd>
+
+                        <dt class="col-sm-3">Age</dt>
+                        <dd class="col-sm-9">{{user.age}}</dd>
+
+                        <dt class="col-sm-3">Gender</dt>
+                        <dd class="col-sm-9">{{user.gender ? 'male' : 'female'}}</dd>
+
+                        <dt class="col-sm-3 text-truncate">City</dt>
+                        <dd class="col-sm-9">{{user.city || 'N/A'}}</dd>
+
+                        <dt class="col-sm-3 text-truncate">Interests</dt>
+                        <dd class="col-sm-9">{{user.interests || 'N/A'}}</dd>
+                    </dl>
+
+                    <button type="button" class="btn btn-primary"
+                            *ngIf="!isCurrentUser && !user.isFriend" [disabled]="loading"
+                            (click)="makeFriendship()"
+                    >
+                        <span *ngIf="loading" class="spinner-border spinner-border-sm mr-1"></span>
+                        Add to friends
+                    </button>
+                    <button type="button" class="btn btn-dark"
+                            *ngIf="user.isFriend" [disabled]="loading"
+                            (click)="breakFriendship()"
+                    >
+                        <span *ngIf="loading" class="spinner-border spinner-border-sm mr-1"></span>
+                        Break friendship
+                    </button>
+                    <a [routerLink]="['/profile']" *ngIf="isCurrentUser" class="float-right">Edit</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <h4 *ngIf="!user && initiated">User Not Found</h4>
+</div>
+

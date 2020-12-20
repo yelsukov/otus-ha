@@ -1,0 +1,19 @@
+.profile-img-container {
+    text-align: center;
+    margin-top: 20px;
+    margin-bottom: 15px;
+}
+
+.profile-img-container > img {
+    border-radius: 50%;
+    width: 25%;
+}
+
+.nav-link {
+    cursor: pointer;
+}
+
+.badge.friend {
+    position: absolute;
+    right: 10px;
+}

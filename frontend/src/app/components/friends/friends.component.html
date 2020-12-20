@@ -1,0 +1,14 @@
+<div class="card mt-4">
+    <div class="card-body">
+        <div *ngIf="!initiated" class="spinner-border spinner-border-sm"></div>
+        <div *ngIf="users.length && initiated">
+            <h6>List of your friends</h6>
+            <ul>
+                <li *ngFor="let user of users">
+                    <a [routerLink]="['/user', user.id]">[{{user.username}}] {{user.firstName}} {{user.lastName}}</a>
+                </li>
+            </ul>
+        </div>
+        <h4 *ngIf="!users.length && initiated">You have no friends :(</h4>
+    </div>
+</div>

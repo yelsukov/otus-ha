@@ -1,0 +1,119 @@
+<div class="col-md-6 offset-md-3 mt-5">
+    <div class="card card-container">
+        <div class="profile-img-container">
+            <img
+                    id="profile-img"
+                    src="//ssl.gstatic.com/accounts/ui/avatar_2x.png"
+                    class="card-img-top"
+            />
+        </div>
+        <h4 class="card-header">Registration</h4>
+        <div class="card-body">
+            <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" *ngIf="!success">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input id="username" type="text" class="form-control"
+                           formControlName="username"
+                           [ngClass]="{ 'is-invalid': submitted && f.username.errors }"/>
+                    <div *ngIf="submitted && f.username.errors" class="invalid-feedback">
+                        <div *ngIf="f.username.errors.required">Username is required</div>
+                        <div *ngIf="f.username.errors.minlength">Username must be at least 5 characters</div>
+                        <div *ngIf="f.username.errors.maxlength">Username must be less than 30 characters</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input id="password" type="password" class="form-control"
+                           formControlName="password"
+                           required
+                           [ngClass]="{ 'is-invalid': submitted && f.password.errors }"/>
+                    <div *ngIf="submitted && f.password.errors" class="invalid-feedback">
+                        <div *ngIf="f.password.errors.required">Password is required</div>
+                        <div *ngIf="f.password.errors.minlength">Password must be at least 6 characters</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Repeat password</label>
+                    <input id="confirm-password" type="password" class="form-control"
+                           formControlName="passwordConfirm"
+                           [ngClass]="{ 'is-invalid': submitted && f.passwordConfirm.errors }"/>
+                    <div *ngIf="f.passwordConfirm.errors && f.passwordConfirm.errors.isEqual" class="invalid-feedback">
+                        Repeated Password should be the same
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="first-name">First Name</label>
+                    <input id="first-name" type="text" class="form-control"
+                           formControlName="firstName"
+                           [ngClass]="{ 'is-invalid': submitted && f.firstName.errors }"
+                    />
+                    <div *ngIf="submitted && f.firstName.errors" class="invalid-feedback">
+                        <div *ngIf="f.firstName.errors.maxlength">First Name must be less than 20 characters</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="last-name">Last Name</label>
+                    <input id="last-name" type="text" class="form-control"
+                           formControlName="lastName"
+                           [ngClass]="{ 'is-invalid': submitted && f.lastName.errors }"
+                    />
+                    <div *ngIf="submitted && f.lastName.errors" class="invalid-feedback">
+                        <div *ngIf="f.lastName.errors.maxlength">Last Name must be less than 30 characters</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="age">Age</label>
+                    <input id="age" type="number" class="form-control"
+                           formControlName="age"
+                           [ngClass]="{ 'is-invalid': submitted && f.age.errors }"
+                    />
+                    <div *ngIf="submitted && f.age.errors" class="invalid-feedback">
+                        <div *ngIf="f.age.errors.min">You're too young for this shit. Go away and don't come back until
+                            you grow up
+                        </div>
+                        <div *ngIf="f.age.errors.max">Immortal or undead persons are not allowed here</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Gender</label><br/>
+                    <div class="form-check-inline">
+                        <label class="form-check-label">
+                            <input type="radio" class="form-check-input" formControlName="gender" value="m">Male
+                        </label>
+                    </div>
+                    <div class="form-check-inline">
+                        <label class="form-check-label">
+                            <input type="radio" class="form-check-input" formControlName="gender" value="f">Female
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="city">City</label>
+                    <input id="city" type="text" class="form-control"
+                           formControlName="city"
+                           [ngClass]="{ 'is-invalid': submitted && f.city.errors }"
+                    />
+                    <div *ngIf="submitted && f.city.errors" class="invalid-feedback">
+                        <div *ngIf="f.city.errors.maxlength">City must be less than 80 characters. Otherwise please
+                            migrate to another location
+                        </div>
+                    </div>
+                </div>
+
+                <button [disabled]="loading" class="btn btn-primary">
+                    <span *ngIf="loading" class="spinner-border spinner-border-sm mr-1"></span>
+                    Register
+                </button>
+                or <a routerLink="/login">Login</a>
+
+            </form>
+            <div class="alert alert-success" *ngIf="success">
+                Your registration is successful!<br>
+                Please try to <a routerLink="/login">login</a>
+            </div>
+        </div>
+    </div>
+</div>
+

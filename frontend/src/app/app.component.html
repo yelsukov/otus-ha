@@ -1,0 +1,19 @@
+<!-- nav -->
+<nav class="navbar navbar-expand navbar-dark bg-dark" *ngIf="currentUser">
+    <div class="navbar-nav mr-auto">
+        <a class="nav-item nav-link" routerLink="/" routerLinkActive="active">Dashboard</a>
+        <a class="nav-item nav-link" routerLink="/profile">Profile</a>
+        <a class="nav-item nav-link" routerLink="/friends">Friends</a>
+        <a class="nav-item nav-link" (click)="logout()">Logout</a>
+    </div>
+    <div class="my-2 my-lg-0">
+        <b *ngIf="currentUser" style="color:white">
+            You're logged as {{currentUser.username}}
+        </b>
+    </div>
+</nav>
+
+<!-- main app container -->
+<div class="container">
+    <router-outlet></router-outlet>
+</div>

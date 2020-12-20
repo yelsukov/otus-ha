@@ -1,0 +1,57 @@
+version: '2.4'
+
+services:
+  mysqldb:
+    container_name: "mysqldb"
+    image: mysql:8.0.22
+    restart: always
+    environment:
+      MYSQL_DATABASE: "${DB_NAME}"
+      MYSQL_USER: "${DB_USER}"
+      MYSQL_ROOT_PASSWORD: "${DB_PASSWORD}"
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_ROOT_PASSWORD
+      interval: 3s
+      timeout: 10s
+      retries: 15
+    ports:
+      - 3336:3306
+    networks:
+      - hw
+
+  backend:
+    container_name: "backend"
+    build:
+      context: backend
+    restart: always
+    ports:
+      - 8007:8080
+    environment:
+      JWT_SECRET: "${JWT_SECRET}"
+      DB_HOST: "mysqldb"
+      DB_USER: "${DB_USER}"
+      DB_PASSWORD: "${DB_PASSWORD}"
+      DB_NAME: "${DB_NAME}"
+      DEBUG: "${DEBUG}"
+    depends_on:
+      mysqldb:
+        condition: service_healthy
+    networks:
+      - hw
+
+  frontend:
+    container_name: "frontend"
+    build:
+      context: frontend
+    restart: always
+    ports:
+      - 8008:80
+    depends_on:
+      - backend
+    networks:
+      - hw
+
+
+networks:
+  hw:
+    external: false
