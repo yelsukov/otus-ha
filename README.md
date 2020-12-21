@@ -88,9 +88,9 @@ List of used images
 
 ### Makefile commands
 
-You can do a lot of routine work with simple commands from the Makefile.
+You can do some of the routine work with simple commands from the Makefile.
 
-For this just execute form project folder next console command:
+To use it just run the following console command from your project folder:
 > $ make [action]
 
 #### List of parameters
