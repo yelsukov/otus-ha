@@ -58,12 +58,12 @@ Task: Create template of the social network for HL-tests and fun.
 
 Just execute in terminal `make up`
 
-The command will build the Docker images and runs the container using a compose file.  
+The command will build the Docker images and runs the containerы using a compose file.  
 
 Or you can run docker-compose directly:
 `sudo docker-compose up --build -d`
 
-Your will find the frontend SPA at http://127.0.0.1:8008
+You will find the frontend SPA at http://127.0.0.1:8008
 
 If you want to try direct requests to API, then you can find it at http://127.0.0.1:8007/v1
 
