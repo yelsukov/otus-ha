@@ -3,6 +3,7 @@ import {User} from '@models/user';
 import {UserService} from '@services/user.service';
 import {finalize, first} from 'rxjs/operators';
 import {FormBuilder, FormGroup, Validators} from '@angular/forms';
+import {ToastrService} from 'ngx-toastr';
 
 @Component({templateUrl: './profile.component.html'})
 export class ProfileComponent implements OnInit {
@@ -12,7 +13,7 @@ export class ProfileComponent implements OnInit {
     profile: User;
     profileForm: FormGroup;
 
-    constructor(private formBuilder: FormBuilder, private userService: UserService) {
+    constructor(private formBuilder: FormBuilder, private userService: UserService, private toaster: ToastrService) {
     }
 
     ngOnInit(): void {
@@ -46,6 +47,9 @@ export class ProfileComponent implements OnInit {
         this.loading = true;
         this.userService.update(this.profileForm.value)
             .pipe(first(), finalize(() => this.loading = false))
-            .subscribe(() => this.submitted = false);
+            .subscribe(() => {
+                this.submitted = false;
+                this.toaster.success('Updates has been saved', 'Success', {timeOut: 3000});
+            });
     }
 }

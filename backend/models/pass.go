@@ -12,7 +12,7 @@ type PassChange struct {
 }
 
 const (
-	minPasswordLength = 10
+	minPasswordLength = 6
 	maxPasswordLength = 64
 )
 
