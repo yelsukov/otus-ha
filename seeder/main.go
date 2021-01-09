@@ -98,7 +98,7 @@ func init() {
 const rowsPerInsert = 5000
 
 func exec(db *sql.DB, placeholders []string, params []interface{}) {
-	stmt := fmt.Sprintf("INSERT INTO `users` (`username`, `first_name`, `last_name`, `password_hash`) VALUES %s",
+	stmt := fmt.Sprintf("INSERT INTO `users` (`username`, `first_name`, `last_name`, `gender`, `password_hash`) VALUES %s",
 		strings.Join(placeholders, ","))
 	_, err := db.Exec(stmt, params...)
 	if err != nil {
@@ -107,15 +107,15 @@ func exec(db *sql.DB, placeholders []string, params []interface{}) {
 }
 func insert(db *sql.DB, qty int, wg *sync.WaitGroup) {
 	placeholders := make([]string, 0, rowsPerInsert)
-	params := make([]interface{}, 0, rowsPerInsert*4)
+	params := make([]interface{}, 0, rowsPerInsert*5)
 	for i := 0; i < qty; i++ {
 		u := newRandomUser()
-		placeholders = append(placeholders, "(?, ?, ?, ?)")
-		params = append(params, u.Username, u.Firstname, u.Lastname, u.Password)
+		placeholders = append(placeholders, "(?, ?, ?, ?, ?)")
+		params = append(params, u.Username, u.Firstname, u.Lastname, u.Gender, u.Password)
 		if len(placeholders) >= rowsPerInsert {
 			exec(db, placeholders, params)
 			placeholders = make([]string, 0, rowsPerInsert)
-			params = make([]interface{}, 0, rowsPerInsert*4)
+			params = make([]interface{}, 0, rowsPerInsert*5)
 		}
 	}
 	if len(placeholders) > 0 {
