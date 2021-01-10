@@ -14,7 +14,7 @@ type User struct {
 	FirstName    NullString `json:"firstName"`
 	LastName     NullString `json:"lastName"`
 	Age          NullInt32  `json:"age"`
-	Gender       NullString `json:"gender"`
+	Gender       string     `json:"gender"`
 	City         NullString `json:"city"`
 	Interests    NullString `json:"interests"`
 	PasswordHash []byte     `json:"-"`
@@ -46,7 +46,7 @@ func (u *User) Validate() error {
 	if u.Age.Valid && (u.Age.Int32 < 18 || u.Age.Int32 > 120) {
 		return errors.New("4005", "`Age` should be between 18 and 120")
 	}
-	if u.Gender.Valid && u.Gender.String != "f" && u.Gender.String != "m" {
+	if u.Gender != "f" && u.Gender != "m" {
 		return errors.New("4006", "Invalid format of `Gender`")
 	}
 	if u.City.Valid && len(u.City.String) > 80 {

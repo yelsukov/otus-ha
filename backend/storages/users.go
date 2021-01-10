@@ -5,6 +5,7 @@ import (
 	"github.com/yelsukov/otus-ha/backend/errors"
 	"github.com/yelsukov/otus-ha/backend/models"
 	"golang.org/x/crypto/bcrypt"
+	"strconv"
 	"strings"
 )
 
@@ -68,23 +69,28 @@ func (m *UsersStorage) Get(id int64) (models.User, error) {
 	return user, nil
 }
 
-func (m *UsersStorage) Fetch(lastId int64, limit uint32) ([]models.User, error) {
-	query := "SELECT " + modelFields + " FROM users u"
-	where := &QueryStmt{Params: make([]interface{}, 0, 2)}
+func (m *UsersStorage) Fetch(match *map[string]string, lastId int64, limit uint32) ([]models.User, error) {
+	query := "SELECT " + modelFields + " FROM `users` u"
+	where := &QueryStmt{make([]string, 0, 3), make([]interface{}, 0, 3)}
+	if len(*match) != 0 {
+		for key, value := range *match {
+			where.Conditions = append(where.Conditions, key)
+			where.Params = append(where.Params, value)
+		}
+	}
 
 	if lastId != 0 {
-		where.Conditions = append(where.Conditions, "u.id > ?")
+		where.Conditions = append(where.Conditions, "u.`id` > ?")
 		where.Params = append(where.Params, lastId)
 	}
 	if len(where.Conditions) > 0 {
-		query += "WHERE " + strings.Join(where.Conditions[:], " AND ")
+		query += " WHERE " + strings.Join(where.Conditions[:], " AND ")
 	}
 
 	if limit == 0 {
 		limit = 25
 	}
-	where.Params = append(where.Params, limit)
-	query += " LIMIT 0, ?"
+	query += " LIMIT 0, " + strconv.Itoa(int(limit))
 
 	stmt, err := m.db.Prepare(query)
 	defer closeStmt(stmt)
@@ -201,9 +207,9 @@ func prepareExecStmt(dirty *models.User, clean *models.User) ExecStmt {
 			clean.Age = dirty.Age
 		}
 	}
-	if clean == nil || (dirty.Gender.Valid && clean.Gender.String != dirty.Gender.String) {
+	if clean == nil || (dirty.Gender != "" && clean.Gender != dirty.Gender) {
 		stmt.Set = append(stmt.Set, "`gender` = ?")
-		stmt.Params = append(stmt.Params, dirty.Gender.String)
+		stmt.Params = append(stmt.Params, dirty.Gender)
 		if clean != nil {
 			clean.Gender = dirty.Gender
 		}
