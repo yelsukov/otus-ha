@@ -45,7 +45,7 @@ end
 
 ## Тестирование Без Индекса
 ### Explain Query
-mysql> EXPLAIN SELECT * FROM `users` WHERE `first_name` LIKE('Abe%') AND `last_name` LIKE('Ber%') ORDER BY `id`\G
+> mysql> EXPLAIN SELECT * FROM `users` WHERE `first_name` LIKE('Abe%') AND `last_name` LIKE('Ber%') ORDER BY `id`\G
 ```
 id: 1
 select_type: SIMPLE
@@ -171,7 +171,7 @@ Transfer/sec:      0.88KB
 
 ### Explain Query
 
-mysql> EXPLAIN SELECT * FROM `users` WHERE `first_name`  LIKE('Abe%') AND `last_name` LIKE('Ber%') ORDER BY `id`\G
+> mysql> EXPLAIN SELECT * FROM `users` WHERE `first_name`  LIKE('Abe%') AND `last_name` LIKE('Ber%') ORDER BY `id`\G
 ```
 id: 1
 select_type: SIMPLE
