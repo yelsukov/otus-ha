@@ -69,13 +69,13 @@ func (m *UsersStorage) Get(id int64) (models.User, error) {
 	return user, nil
 }
 
-func (m *UsersStorage) Fetch(match *map[string]string, lastId int64, limit uint32) ([]models.User, error) {
+func (m *UsersStorage) Fetch(match [][2]string, lastId int64, limit uint32) ([]models.User, error) {
 	query := "SELECT " + modelFields + " FROM `users` u"
 	where := &QueryStmt{make([]string, 0, 3), make([]interface{}, 0, 3)}
-	if len(*match) != 0 {
-		for key, value := range *match {
-			where.Conditions = append(where.Conditions, key)
-			where.Params = append(where.Params, value)
+	if len(match) != 0 {
+		for i := 0; i < len(match); i++ {
+			where.Conditions = append(where.Conditions, match[i][0])
+			where.Params = append(where.Params, match[i][1])
 		}
 	}
 

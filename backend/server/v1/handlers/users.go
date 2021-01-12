@@ -23,7 +23,7 @@ type UsersListResponse struct {
 type userCruder interface {
 	Create(user *models.User) (int64, error)
 	Get(id int64) (models.User, error)
-	Fetch(match *map[string]string, lastId int64, limit uint32) ([]models.User, error)
+	Fetch(match [][2]string, lastId int64, limit uint32) ([]models.User, error)
 	Update(user *models.User, clean *models.User) error
 }
 
@@ -64,17 +64,17 @@ func GetUsers(store userCruder) http.HandlerFunc {
 			limit, _ = strconv.Atoi(strLimit)
 		}
 
-		match := make(map[string]string)
-		lastName := r.URL.Query().Get("lastName")
-		if lastName != "" {
-			match["`last_name` LIKE (?)"] = lastName + "%"
-		}
+		match := make([][2]string, 0, 2)
 		firstName := r.URL.Query().Get("firstName")
 		if firstName != "" {
-			match["`first_name` LIKE (?)"] = firstName + "%"
+			match = append(match, [2]string{"`first_name` LIKE (?)", firstName + "%"})
+		}
+		lastName := r.URL.Query().Get("lastName")
+		if lastName != "" {
+			match = append(match, [2]string{"`last_name` LIKE (?)", lastName + "%"})
 		}
 
-		users, err := store.Fetch(&match, int64(lastId), uint32(limit))
+		users, err := store.Fetch(match, int64(lastId), uint32(limit))
 		if err != nil {
 			responses.ResponseWithError(w, err)
 			return

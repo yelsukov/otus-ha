@@ -33,7 +33,6 @@ func NewServer(ctx context.Context, cfg *conf.Config, db *sql.DB) *Server {
 func (s *Server) setupRoutes() {
 	s.mux.Use(
 		middleware.Recoverer,
-		middleware.Timeout(s.cfg.RequestTimeout),
 		func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				headers := w.Header()
