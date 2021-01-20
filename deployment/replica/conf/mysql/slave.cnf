@@ -1,0 +1,20 @@
+[mysqld]
+server-id=222
+report_host=slave_db
+
+innodb_log_file_size=512M
+innodb_buffer_pool_size=1024M
+innodb_flush_log_at_trx_commit=2
+sync_binlog=0
+log-bin
+log-slave-updates
+relay_log_info_repository=TABLE
+relay_log_recovery=ON
+master_info_repository=TABLE
+read_only=1
+
+# Use replication only for project database
+replicate-do-db=otus_ha
+
+# Can be used via Mysql Workbench/SequelPro
+default_authentication_plugin=mysql_native_password

@@ -1,0 +1,79 @@
+version: '2.4'
+
+services:
+  master_db:
+    container_name: "master_db"
+    hostname: "master_db"
+    image: mysql:8.0.22
+    restart: always
+    volumes:
+      - ./conf/mysql/master.cnf:/etc/mysql/conf.d/my.cnf
+    environment:
+      MYSQL_DATABASE: "${DB_NAME}"
+      MYSQL_USER: "${MASTER_USER}"
+      MYSQL_ROOT_PASSWORD: "${MASTER_PASSWORD}"
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_ROOT_PASSWORD
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    ports:
+      - 3336:3306
+    networks:
+      - hw
+
+  slave_db:
+    container_name: "slave_db"
+    hostname: "slave_db"
+    image: mysql:8.0.22
+    restart: always
+    volumes:
+      - ./conf/mysql/slave.cnf:/etc/mysql/conf.d/my.cnf
+    environment:
+      MYSQL_USER: "${SLAVE_USER}"
+      MYSQL_ROOT_PASSWORD: "${SLAVE_PASSWORD}"
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_ROOT_PASSWORD
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    ports:
+      - 3337:3306
+    depends_on:
+      master_db:
+        condition: service_healthy
+    networks:
+      - hw
+
+  proxysql:
+    container_name: "proxysql"
+    hostname: "proxysql"
+    image: proxysql/proxysql:latest
+    ports:
+      - 16033:6033
+      - 16032:6032
+    volumes:
+      - ./conf/proxysql/proxysql.cnf:/etc/proxysql.cnf
+    depends_on:
+      master_db:
+        condition: service_healthy
+      slave_db:
+        condition: service_healthy
+    networks:
+      - hw
+
+  replication:
+    container_name: "firestarter"
+    build:
+      context: starter
+    env_file:
+      - .env
+    networks:
+      - hw
+    depends_on:
+      - proxysql
+    command: bash setupReplica.sh
+
+networks:
+  hw:
+    name: hw
