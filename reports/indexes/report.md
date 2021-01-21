@@ -35,8 +35,8 @@ local function randomString(length)
 end
 
 request = function()
-  local lastName = randomString(2)
-  local firstName = randomString(2)
+  local lastName = randomString(math.random(2,5))
+  local firstName = randomString(math.random(2,5))
   
   path = "/v1/users?firstName=" .. firstName .. "&lastName=" .. lastName .. "&limit=3"
   return wrk.format("GET", path)
