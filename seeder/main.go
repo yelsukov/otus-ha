@@ -10,9 +10,11 @@ import (
 	"math"
 	"math/rand"
 	"os"
+	"os/signal"
 	"runtime"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -25,6 +27,8 @@ const (
 	namesCap    = len(names) - 1
 	surnamesCap = len(surnames) - 1
 )
+
+var counter int64
 
 type randomUser struct {
 	Username  string
@@ -95,16 +99,25 @@ func init() {
 	password = string(pass)
 }
 
-const rowsPerInsert = 5000
+const rowsPerInsert = 1000
 
-func exec(db *sql.DB, placeholders []string, params []interface{}) {
+func exec(db *sql.DB, placeholders []string, params []interface{}) error {
 	stmt := fmt.Sprintf("INSERT INTO `users` (`username`, `first_name`, `last_name`, `gender`, `password_hash`) VALUES %s",
 		strings.Join(placeholders, ","))
-	_, err := db.Exec(stmt, params...)
+	res, err := db.Exec(stmt, params...)
 	if err != nil {
-		fmt.Println("failed to execute batch", err)
+		return err
 	}
+	cnt, err := res.RowsAffected()
+	fmt.Printf("%d rows where been inserted\n", int(cnt))
+	if err != nil {
+		return err
+	}
+	counter += cnt
+
+	return nil
 }
+
 func insert(db *sql.DB, qty int, wg *sync.WaitGroup) {
 	placeholders := make([]string, 0, rowsPerInsert)
 	params := make([]interface{}, 0, rowsPerInsert*5)
@@ -113,15 +126,23 @@ func insert(db *sql.DB, qty int, wg *sync.WaitGroup) {
 		placeholders = append(placeholders, "(?, ?, ?, ?, ?)")
 		params = append(params, u.Username, u.Firstname, u.Lastname, u.Gender, u.Password)
 		if len(placeholders) >= rowsPerInsert {
-			exec(db, placeholders, params)
+			err := exec(db, placeholders, params)
+			if err != nil {
+				fmt.Printf("Failed to insert %d rows due to %s\n", rowsPerInsert, err.Error())
+				return
+			}
 			placeholders = make([]string, 0, rowsPerInsert)
 			params = make([]interface{}, 0, rowsPerInsert*5)
 		}
 	}
 	if len(placeholders) > 0 {
-		exec(db, placeholders, params)
+		err := exec(db, placeholders, params)
+		if err != nil {
+			fmt.Printf("Failed to insert %d rows due to %s\n", rowsPerInsert, err.Error())
+			return
+		}
 	}
-	fmt.Printf("%d rows where been inserted\n", qty)
+	fmt.Printf("batch processed!\n", qty)
 	wg.Done()
 }
 
@@ -138,6 +159,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	defer func() {
+		if err = db.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 
 	err = populateArrays(names[:], "firstnames")
 	if err != nil {
@@ -161,7 +187,18 @@ func main() {
 		go insert(db, batchSize, &wg)
 		*qty -= batchSize
 	}
-	wg.Wait()
+	// Create the interruption channel end lock until it gets interruption signal from OS
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGKILL, syscall.SIGINT, syscall.SIGTERM)
+	// Run routine for gracefully shut down
+	go func() {
+		sig := <-c
+		fmt.Printf("received the %+v call, shutting down\n", sig)
+		fmt.Printf("%d rows where been inserted in total\n", counter)
+		signal.Stop(c)
+		os.Exit(1)
+	}()
 
-	fmt.Println("Done")
+	wg.Wait()
+	fmt.Printf("%d rows where been inserted in total\n", counter)
 }
