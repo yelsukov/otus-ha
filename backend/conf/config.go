@@ -12,8 +12,8 @@ const (
 	defaultDbPort     = "3306"
 	defaultDbName     = "otus"
 	defaultDbOpenConn = 10
-	defaultDbIdleConn = 5
-	defaultDbConnLife = time.Second * 10
+	defaultDbIdleConn = 10
+	defaultDbConnLife = time.Minute * 2
 	defaultReqTimeout = time.Second * 2
 	defaultJwtTtl     = time.Hour * 1
 )

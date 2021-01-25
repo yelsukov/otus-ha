@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
@@ -26,7 +27,13 @@ func connectDb(cfg *conf.Config) (*sql.DB, error) {
 		return nil, err
 	}
 
-	if err = db.Ping(); err != nil {
+	for i := 0; i < 10; i++ {
+		if err = db.Ping(); err == nil {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+	if err != nil {
 		return nil, err
 	}
 
@@ -65,6 +72,11 @@ func main() {
 	if err != nil {
 		log.WithError(err).Fatal("failed to connect to DB")
 	}
+	defer func() {
+		if err = db.Close(); err != nil {
+			log.WithError(err).Error("failed to close db connection")
+		}
+	}()
 	log.Info("successfully connected to db")
 
 	log.Info("implementing migrations")
