@@ -1,17 +1,29 @@
 [mysqld]
-server-id=222
-report_host=slave_db
+server-id=2
+report_host=slave1_db
+
+character-set-server=utf8
+collation-server=utf8_general_ci
+
+log_error=/var/lib/mysql/errors.log
+slow_query_log=ON
+slow_query_log_file=/var/lib/mysql/slow.log
+long_query_time=2
+log_queries_not_using_indexes=1
+log-bin
+log-slave-updates
 
 innodb_log_file_size=512M
 innodb_buffer_pool_size=1024M
 innodb_flush_log_at_trx_commit=2
 sync_binlog=0
-log-bin
-log-slave-updates
 relay_log_info_repository=TABLE
 relay_log_recovery=ON
 master_info_repository=TABLE
 read_only=1
+
+skip-name-resolve
+skip-host-cache
 
 # Use replication only for project database
 replicate-do-db=otus_ha

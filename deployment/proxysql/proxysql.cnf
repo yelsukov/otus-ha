@@ -3,6 +3,7 @@ datadir="/var/lib/proxysql"
 admin_variables=
 {
     admin_credentials="admin:admin;firestarter:startfire"
+    stats_credentials="stats:stats"
     mysql_ifaces="0.0.0.0:6032"
     refresh_interval=2000
 }
@@ -10,14 +11,13 @@ admin_variables=
 mysql_variables=
 {
     threads=4
-    max_connections=2048
+    max_connections=2024
     default_query_delay=0
     default_query_timeout=36000000
-    have_compress=true
-    poll_timeout=2000
+    poll_timeout=15000
     interfaces="0.0.0.0:6033"
     default_schema="information_schema"
-    stacksize=1048576
+    stacksize=4194304
     server_version="5.5.30"
     connect_timeout_server=3000
     monitor_username="monitor"
@@ -32,6 +32,8 @@ mysql_variables=
     commands_stats=true
     sessions_sort=true
     connect_retries_on_failure=10
+    verbose_query_error=true
+    query_digests_lowercase=true
 }
 
 mysql_replication_hostgroups =
@@ -44,14 +46,14 @@ mysql_query_rules =
     {
         rule_id=1
         active=1
-        match_pattern="^SELECT .* FOR UPDATE"
+        match_pattern="^SELECT.*FOR UPDATE"
         destination_hostgroup=1
         apply=1
     },
     {
         rule_id=2
         active=1
-        match_pattern="^SELECT .*"
+        match_pattern="^SELECT.*"
         destination_hostgroup=2
         apply=1
     }

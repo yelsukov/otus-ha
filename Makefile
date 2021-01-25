@@ -1,4 +1,4 @@
-PROJECT=otus-ha
+PROJECT=otus-habash
 GOOS=linux
 CGO_ENABLED?=0
 
@@ -17,6 +17,18 @@ up:
 
 down:
 	sudo docker-compose -f docker-compose.yml down
+
+startReplica:
+	sudo docker-compose -f docker-compose.rpl.yml up --build -d
+
+stopReplica:
+	sudo docker-compose -f docker-compose.rpl.yml down -v
+
+startMonitor:
+	sudo docker-compose -f deployment/monitoring/docker-compose.yml up --build -d
+
+stopMonitor:
+	sudo docker-compose -f deployment/monitoring/docker-compose.yml down -v --rmi=local
 
 fmt:
 	@echo "+ $@"

@@ -1,13 +1,15 @@
 version: '2.4'
 
 services:
+
   master_db:
+    image: mysql:8.0.22
     container_name: "master_db"
     hostname: "master_db"
-    image: mysql:8.0.22
     restart: always
     volumes:
-      - ./conf/mysql/master.cnf:/etc/mysql/conf.d/my.cnf
+      - /var/data/mysql/master:/var/lib/mysql
+      - ./deployment/replica/mysql/master.cnf:/etc/mysql/conf.d/my.cnf
     environment:
       MYSQL_DATABASE: "${DB_NAME}"
       MYSQL_USER: "${MASTER_USER}"
@@ -23,12 +25,13 @@ services:
       - hw
 
   slave_db:
+    image: mysql:8.0.22
     container_name: "slave_db"
     hostname: "slave_db"
-    image: mysql:8.0.22
     restart: always
     volumes:
-      - ./conf/mysql/slave.cnf:/etc/mysql/conf.d/my.cnf
+      - /var/data/mysql/slave1:/var/lib/mysql
+      - ./deployment/replica/mysql/slave.cnf:/etc/mysql/conf.d/my.cnf
     environment:
       MYSQL_USER: "${SLAVE_USER}"
       MYSQL_ROOT_PASSWORD: "${SLAVE_PASSWORD}"
@@ -47,13 +50,14 @@ services:
 
   proxysql:
     container_name: "proxysql"
-    hostname: "proxysql"
-    image: proxysql/proxysql:latest
+    build:
+      context: deployment/proxysql
+    restart: always
     ports:
       - 16033:6033
       - 16032:6032
     volumes:
-      - ./conf/proxysql/proxysql.cnf:/etc/proxysql.cnf
+      - /var/data/proxysql:/var/lib/proxysql
     depends_on:
       master_db:
         condition: service_healthy
@@ -62,17 +66,45 @@ services:
     networks:
       - hw
 
-  replication:
-    container_name: "firestarter"
+  replica-starter:
+    container_name: "replicator"
     build:
-      context: starter
+      context: deployment/replica
     env_file:
       - .env
-    networks:
-      - hw
     depends_on:
       - proxysql
     command: bash setupReplica.sh
+    networks:
+      - hw
+
+  backend:
+    container_name: "backend"
+    build:
+      context: backend
+    restart: always
+    ports:
+      - 8007:8080
+    environment:
+      JWT_SECRET: "${JWT_SECRET}"
+      DB_HOST: "proxysql"
+      DB_PORT: "6033"
+      DB_USER: "${PROXY_USER}"
+      DB_PASSWORD: "${PROXY_PASSWORD}"
+      DB_NAME: "${DB_NAME}"
+      DEBUG: "${DEBUG}"
+    depends_on:
+      replica-starter:
+        condition: service_started
+      proxysql:
+        condition: service_started
+    networks:
+      - hw
+
+#  frontend:
+#    extends:
+#      file: docker-compose.yml
+#      service: frontend
 
 networks:
   hw:

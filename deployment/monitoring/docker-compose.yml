@@ -1,0 +1,16 @@
+version: '2.4'
+
+services:
+  pmm-server:
+    container_name: "pmm_serv"
+    image: percona/pmm-server:latest
+    ports:
+      - 8100:80
+    restart: always
+    networks:
+      - hw
+
+networks:
+  hw:
+    name: hw
+    external: true

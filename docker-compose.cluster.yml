@@ -1,0 +1,178 @@
+version: '2.4'
+
+services:
+
+  master_db:
+    image: mysql:8.0.22
+    container_name: "master_db"
+    hostname: "master_db"
+    restart: always
+    volumes:
+      - /var/data/mysql/master:/var/lib/mysql
+      - ./deployment/mysql/master.cnf:/etc/mysql/conf.d/my.cnf
+    environment:
+      MYSQL_DATABASE: "${DB_NAME}"
+      MYSQL_USER: "${MASTER_USER}"
+      MYSQL_ROOT_PASSWORD: "${MASTER_PASSWORD}"
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_ROOT_PASSWORD
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    ports:
+      - 3336:3306
+    networks:
+      - hw
+
+  slave1_db:
+    image: mysql:8.0.22
+    container_name: "slave1_db"
+    hostname: "slave1_db"
+    restart: always
+    volumes:
+      - /var/data/mysql/slave1:/var/lib/mysql
+      - ./deployment/mysql/slave.cnf:/etc/mysql/conf.d/my.cnf
+    environment:
+      MYSQL_USER: "${SLAVE_USER}"
+      MYSQL_ROOT_PASSWORD: "${SLAVE_PASSWORD}"
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_ROOT_PASSWORD
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    ports:
+      - 3337:3306
+    depends_on:
+      master_db:
+        condition: service_healthy
+    networks:
+      - hw
+
+  slave2_db:
+    image: mysql:8.0.22
+    container_name: "slave2_db"
+    hostname: "slave2_db"
+    restart: always
+    volumes:
+      - /var/data/mysql/slave2:/var/lib/mysql
+      - ./deployment/mysql/slave2.cnf:/etc/mysql/conf.d/my.cnf
+    environment:
+      MYSQL_USER: "${SLAVE_USER}"
+      MYSQL_ROOT_PASSWORD: "${SLAVE_PASSWORD}"
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_ROOT_PASSWORD
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    ports:
+      - 3338:3306
+    depends_on:
+      master_db:
+        condition: service_healthy
+    networks:
+      - hw
+
+  proxysql:
+    container_name: "proxysql"
+    build:
+      context: deployment/proxysql
+    restart: always
+    ports:
+      - 16033:6033
+      - 16032:6032
+    volumes:
+      - /var/data/proxysql:/var/lib/proxysql
+    depends_on:
+      master_db:
+        condition: service_healthy
+      slave_db:
+        condition: service_healthy
+    networks:
+      - hw
+
+  replica-starter:
+    container_name: "replicator"
+    build:
+      context: deployment/replica
+    env_file:
+      - .env
+    depends_on:
+      - proxysql
+    command: bash setupReplica.sh
+    networks:
+      - hw
+
+  backend:
+    container_name: "backend"
+    build:
+      context: backend
+    restart: always
+    ports:
+      - 8007:8080
+    environment:
+      JWT_SECRET: "${JWT_SECRET}"
+      DB_HOST: "proxysql"
+      DB_PORT: "6033"
+      DB_USER: "${PROXY_USER}"
+      DB_PASSWORD: "${PROXY_PASSWORD}"
+      DB_NAME: "${DB_NAME}"
+      DEBUG: "${DEBUG}"
+    depends_on:
+      replica-starter:
+        condition: service_started
+      proxysql:
+        condition: service_started
+    networks:
+      - hw
+
+  orc1:
+    build: ./conf/orchestrator/
+    ports:
+      - "23101:3000"
+    volumes:
+      - ./conf/orchestrator/orc1/orchestrator.conf.json:/etc/orchestrator.conf.json
+      - ./conf/orchestrator/remove-proxysql-host.bash:/root/remove-proxysql-host.bash
+    depends_on:
+      - mysql1
+      - mysql2
+      - mysql3
+      - proxysql
+    networks:
+      - backend
+  orc2:
+    build: ./conf/orchestrator/
+    ports:
+      - "23102:3000"
+    volumes:
+      - ./conf/orchestrator/orc2/orchestrator.conf.json:/etc/orchestrator.conf.json
+      - ./conf/orchestrator/remove-proxysql-host.bash:/root/remove-proxysql-host.bash
+    depends_on:
+      - mysql1
+      - mysql2
+      - mysql3
+      - proxysql
+    networks:
+      - backend
+  orc3:
+    build: ./conf/orchestrator/
+    ports:
+      - "23103:3000"
+    volumes:
+      - ./conf/orchestrator/orc3/orchestrator.conf.json:/etc/orchestrator.conf.json
+      - ./conf/orchestrator/remove-proxysql-host.bash:/root/remove-proxysql-host.bash
+    depends_on:
+      - mysql1
+      - mysql2
+      - mysql3
+      - proxysql
+    networks:
+      - backend
+
+#  frontend:
+#    extends:
+#      file: docker-compose.yml
+#      service: frontend
+
+networks:
+  hw:
+    name: hw

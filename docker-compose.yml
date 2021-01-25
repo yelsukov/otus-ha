@@ -7,8 +7,10 @@ services:
     restart: always
     environment:
       MYSQL_DATABASE: "${DB_NAME}"
-      MYSQL_USER: "${DB_USER}"
-      MYSQL_ROOT_PASSWORD: "${DB_PASSWORD}"
+      MYSQL_USER: "${MASTER_USER}"
+      MYSQL_ROOT_PASSWORD: "${MASTER_PASSWORD}"
+    volumes:
+      - ./deployment/replica/mysql/conf/master.cnf:/etc/mysql/conf.d/my.cnf
     healthcheck:
       test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_ROOT_PASSWORD
       interval: 3s
@@ -46,12 +48,11 @@ services:
     restart: always
     ports:
       - 8008:80
-    depends_on:
-      - backend
     networks:
       - hw
 
 
 networks:
   hw:
+    name: hw
     external: false
