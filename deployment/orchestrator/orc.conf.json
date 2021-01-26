@@ -1,0 +1,27 @@
+{
+  "Debug": true,
+  "ListenAddress": ":3000",
+  "MySQLTopologyUser": "orc",
+  "MySQLTopologyPassword": "orcRgdV*ts1O",
+  "BackendDB": "sqlite",
+  "SQLite3DataFile": "/var/lib/orchestrator/orchestrator.db",
+  "HostnameResolveMethod": "default",
+  "MySQLHostnameResolveMethod": "@@report_host",
+  "ApplyMySQLPromotionAfterMasterFailover": true,
+  "DetachLostSlavesAfterMasterFailover": true,
+  "MasterFailoverDetachSlaveMasterHost": false,
+  "MasterFailoverLostInstancesDowntimeMinutes": 0,
+  "RecoverMasterClusterFilters": ["*"],
+  "RecoverIntermediateMasterClusterFilters": ["*"],
+  "PreFailoverProcesses": [
+    "echo 'Will recover from {failureType} on {failureCluster}' >> /tmp/recovery.log"
+  ],
+  "PostFailoverProcesses": [
+    "echo '(for all types) Recovered from {failureType} on {failureCluster}. Failed: {failedHost}:{failedPort}; Successor: {successorHost}:{successorPort}' >> /tmp/recovery.log"
+  ],
+  "PostUnsuccessfulFailoverProcesses": [],
+  "PostMasterFailoverProcesses": [
+    "echo 'Recovered from {failureType} on {failureCluster}. Failed: {failedHost}:{failedPort}; Promoted: {successorHost}:{successorPort}' >> /tmp/recovery.log"
+  ],
+  "PostIntermediateMasterFailoverProcesses": []
+}

@@ -8,7 +8,7 @@ services:
     hostname: "master_db"
     restart: always
     volumes:
-      - /var/data/mysql/master:/var/lib/mysql
+#      - /var/data/mysql/master:/var/lib/mysql
       - ./deployment/replica/mysql/master.cnf:/etc/mysql/conf.d/my.cnf
     environment:
       MYSQL_DATABASE: "${DB_NAME}"
@@ -30,7 +30,7 @@ services:
     hostname: "slave_db"
     restart: always
     volumes:
-      - /var/data/mysql/slave1:/var/lib/mysql
+#      - /var/data/mysql/slave1:/var/lib/mysql
       - ./deployment/replica/mysql/slave.cnf:/etc/mysql/conf.d/my.cnf
     environment:
       MYSQL_USER: "${SLAVE_USER}"
@@ -56,8 +56,8 @@ services:
     ports:
       - 16033:6033
       - 16032:6032
-    volumes:
-      - /var/data/proxysql:/var/lib/proxysql
+#    volumes:
+#      - /var/data/proxysql:/var/lib/proxysql
     depends_on:
       master_db:
         condition: service_healthy
@@ -100,11 +100,6 @@ services:
         condition: service_started
     networks:
       - hw
-
-#  frontend:
-#    extends:
-#      file: docker-compose.yml
-#      service: frontend
 
 networks:
   hw:

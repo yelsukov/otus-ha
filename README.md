@@ -61,7 +61,7 @@ Just execute in terminal `make up`
 The command will build the Docker images and runs the containerы using a compose file.  
 
 Or you can run docker-compose directly:
-`sudo docker-compose up --build -d`
+`sudo docker-compose -f docker-compose.standalone.yml up --build -d`
 
 You will find the frontend SPA at http://127.0.0.1:8008
 

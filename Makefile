@@ -4,6 +4,8 @@ CGO_ENABLED?=0
 
 include .env
 
+TYPE?=standalone
+
 buildBackend: clean
 	cd backend && CGO_ENABLED=${CGO_ENABLED} GOOS=${GOOS} go build -a \
 		-ldflags "-s -w -X main.VERSION=${VERSION}" \
@@ -13,16 +15,16 @@ buildFrontend: clean
 	cd frontend && npm install && ng build --prod
 
 up:
-	sudo docker-compose -f docker-compose.yml up --build -d
+	sudo docker-compose -f docker-compose.${TYPE}.yml up --build -d
 
 down:
-	sudo docker-compose -f docker-compose.yml down
+	sudo docker-compose -f docker-compose.${TYPE}.yml down
 
 startReplica:
-	sudo docker-compose -f docker-compose.rpl.yml up --build -d
+	sudo docker-compose -f docker-compose.replica.yml up --build -d
 
 stopReplica:
-	sudo docker-compose -f docker-compose.rpl.yml down -v
+	sudo docker-compose -f docker-compose.replica.yml down -v
 
 startMonitor:
 	sudo docker-compose -f deployment/monitoring/docker-compose.yml up --build -d

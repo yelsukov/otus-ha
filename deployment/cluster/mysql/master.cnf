@@ -1,28 +1,27 @@
 [mysqld]
 server-id=1
 report_host=master_db
+read_only=0
 
-character-set-server=utf8
-collation-server=utf8_general_ci
+innodb_monitor_enable=all
+performance_schema=ON
 
 #log_error=/var/lib/mysql/errors.log
-general_log=1
+general_log=ON
 general_log_file=/var/lib/mysql/general.log
-slow_query_log=1
+slow_query_log=ON
 slow_query_log_file=/var/lib/mysql/slow.log
 long_query_time=2
 log_queries_not_using_indexes=1
-log-bin
-log-slave-updates
+log_bin=/var/lib/mysql/mysql-bin.log
+log_slave_updates=ON
 
 innodb_log_file_size=512M
 innodb_buffer_pool_size=1024M
 innodb_flush_log_at_trx_commit=2
-sync_binlog=0
 relay_log_info_repository=TABLE
 relay_log_recovery=ON
 master_info_repository=TABLE
-read_only=0
 
 skip-name-resolve
 skip-host-cache
@@ -30,5 +29,15 @@ skip-host-cache
 # Can be used via Mysql Workbench/SequelPro
 default_authentication_plugin=mysql_native_password
 
-innodb_monitor_enable=all
-performance_schema=ON
+# Enable RBR and GTID
+binlog_format=ROW
+gtid_mode=ON
+enforce_gtid_consistency=ON
+
+# Enable semi sync replication
+# Plugin will be installed and configured via query coz mysql starts with --initialize flag
+;plugin-load=rpl_semi_sync_master=semisync_master.so
+;rpl_semi_sync_master_enabled=ON
+;rpl_semi_sync_master_timeout=5000;
+
+slave_preserve_commit_order=1
