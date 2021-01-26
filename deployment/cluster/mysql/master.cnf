@@ -39,5 +39,3 @@ enforce_gtid_consistency=ON
 ;plugin-load=rpl_semi_sync_master=semisync_master.so
 ;rpl_semi_sync_master_enabled=ON
 ;rpl_semi_sync_master_timeout=5000;
-
-slave_preserve_commit_order=1

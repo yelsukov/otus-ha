@@ -122,7 +122,7 @@ services:
     networks:
       - hw
 
-  cluster-starter:
+  firestarter:
     container_name: "clusterator"
     build: ./deployment/cluster
     env_file:
@@ -149,7 +149,7 @@ services:
       DB_NAME: "${DB_NAME}"
       DEBUG: "${DEBUG}"
     depends_on:
-      cluster-starter:
+      firestarter:
         condition: service_started
     networks:
       - hw
@@ -162,7 +162,7 @@ services:
     volumes:
       - ./deployment/orchestrator/orc.conf.json:/etc/orchestrator.conf.json
     depends_on:
-      cluster-starter:
+      firestarter:
         condition: service_started
     networks:
       - hw

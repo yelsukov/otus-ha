@@ -11,7 +11,7 @@ COPY orc.conf.json /etc/orchestrator.conf.json
 
 WORKDIR /usr/local/orchestrator
 
-COPY setupOrc.sh setupOrc.sh
-RUN chmod +x setupOrc.sh
+COPY discoverCluster.sh discoverCluster.sh
+RUN chmod +x discoverCluster.sh
 
 CMD ./orchestrator --config=/etc/orchestrator.conf.json http
