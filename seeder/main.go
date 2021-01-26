@@ -109,16 +109,16 @@ func exec(db *sql.DB, placeholders []string, params []interface{}) error {
 		return err
 	}
 	cnt, err := res.RowsAffected()
-	fmt.Printf("%d rows where been inserted\n", int(cnt))
 	if err != nil {
 		return err
 	}
+	fmt.Printf("%d rows where been inserted\n", int(cnt))
 	counter += cnt
 
 	return nil
 }
 
-func insert(db *sql.DB, qty int, wg *sync.WaitGroup) {
+func insert(db *sql.DB, num int, qty int, wg *sync.WaitGroup) {
 	placeholders := make([]string, 0, rowsPerInsert)
 	params := make([]interface{}, 0, rowsPerInsert*5)
 	for i := 0; i < qty; i++ {
@@ -128,7 +128,8 @@ func insert(db *sql.DB, qty int, wg *sync.WaitGroup) {
 		if len(placeholders) >= rowsPerInsert {
 			err := exec(db, placeholders, params)
 			if err != nil {
-				fmt.Printf("Failed to insert %d rows due to %s\n", rowsPerInsert, err.Error())
+				fmt.Printf("Worker #%d has been stoped due to %s\n", num, err.Error())
+				wg.Done()
 				return
 			}
 			placeholders = make([]string, 0, rowsPerInsert)
@@ -138,11 +139,12 @@ func insert(db *sql.DB, qty int, wg *sync.WaitGroup) {
 	if len(placeholders) > 0 {
 		err := exec(db, placeholders, params)
 		if err != nil {
-			fmt.Printf("Failed to insert %d rows due to %s\n", rowsPerInsert, err.Error())
+			fmt.Printf("Worker #%d has been stoped due to %s\n", num, err.Error())
+			wg.Done()
 			return
 		}
 	}
-	fmt.Printf("batch processed!\n", qty)
+	fmt.Printf("Worker #%d finished job!\n", qty)
 	wg.Done()
 }
 
@@ -179,12 +181,14 @@ func main() {
 	batchSize := int(math.Ceil(float64(*qty) / float64(runtime.NumCPU())))
 	fmt.Printf("have %d cores with batch size %d\n", runtime.NumCPU(), batchSize)
 	var wg sync.WaitGroup
+	var workerNum = 1
 	for *qty > 0 {
 		if *qty < batchSize {
 			batchSize = *qty
 		}
 		wg.Add(1)
-		go insert(db, batchSize, &wg)
+		go insert(db, workerNum, batchSize, &wg)
+		workerNum++
 		*qty -= batchSize
 	}
 	// Create the interruption channel end lock until it gets interruption signal from OS
