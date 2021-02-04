@@ -1,0 +1,42 @@
+version: '2.4'
+
+services:
+  mongo_db:
+    container_name: "mongo_db"
+    image: mongo:4.4.3
+    restart: always
+    ports:
+      - 27017:27017
+    networks:
+      - dlg
+      - hw
+
+  dialogue:
+    container_name: "dialogue"
+    build:
+      context: .
+      args:
+        TOKEN: "${TOKEN}"
+        VERSION: "0.0.1"
+    restart: always
+    ports:
+      - 8008:${SERVER_PORT}
+    environment:
+      MONGO_DSN: "mongodb://mongo_db:27017"
+      DB_NAME: "${DB_NAME}"
+      DEBUG: "${DEBUG}"
+      SERVER_PORT: "${SERVER_PORT}"
+    depends_on:
+      - mongo_db
+    networks:
+      - dlg
+      - hw
+
+
+networks:
+  dlg:
+    name: dlg
+    internal: true
+  hw:
+    name: hw
+    external: false

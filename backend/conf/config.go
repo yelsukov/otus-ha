@@ -61,7 +61,7 @@ func PopulateConfig() (*Config, error) {
 	}
 
 	if cfg.DbName, exist = os.LookupEnv("DB_NAME"); !exist {
-		cfg.DbPort = defaultDbName
+		cfg.DbName = defaultDbName
 	}
 	if cfg.DbPort, exist = os.LookupEnv("DB_PORT"); !exist {
 		cfg.DbPort = defaultDbPort
