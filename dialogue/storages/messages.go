@@ -7,7 +7,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"time"
 )
 
 type MessageStorage struct {
@@ -20,28 +19,27 @@ func NewMessageStorage(ctx context.Context, db *mongo.Database) *MessageStorage 
 }
 
 func (m *MessageStorage) InsertOne(message *entities.Message) error {
-	now := time.Now()
-	message.Date = now.Format("YYYY-MM-DD")
-	message.CreatedAt = now.Unix()
+	if err := message.Validate(); err != nil {
+		return err
+	}
+	message.BeforeSave()
+
 	result, err := m.col.InsertOne(m.ctx, message)
 	if err != nil {
 		return err
 	}
 	message.Id = result.InsertedID.(primitive.ObjectID)
+
 	return nil
 }
 
-func (m *MessageStorage) ReadOne(id string) (*entities.Message, error) {
+func (m *MessageStorage) ReadOne(id *primitive.ObjectID) (*entities.Message, error) {
 	var message entities.Message
-	_id, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, err
-	}
-	err = m.col.FindOne(m.ctx, bson.M{"_id": _id}).Decode(&message)
+	err := m.col.FindOne(m.ctx, bson.M{"_id": id}).Decode(&message)
 	return &message, err
 }
 
-func (m *MessageStorage) ReadMany(chatId string, lastId string, limit uint32) ([]entities.Message, error) {
+func (m *MessageStorage) ReadMany(chatId, lastId *primitive.ObjectID, limit uint32) ([]entities.Message, error) {
 	var messages []entities.Message
 
 	opts := options.Find()
@@ -51,12 +49,8 @@ func (m *MessageStorage) ReadMany(chatId string, lastId string, limit uint32) ([
 	}
 	opts.SetLimit(int64(limit))
 
-	cid, err := primitive.ObjectIDFromHex(chatId)
-	if err != nil {
-		return nil, err
-	}
-	filter := bson.D{{"cid", cid}}
-	if lastId != "" {
+	filter := bson.D{{"cid", chatId}}
+	if lastId != nil {
 		filter = append(filter, bson.E{"_id", bson.D{{"$gt", lastId}}})
 	}
 

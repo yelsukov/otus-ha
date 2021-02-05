@@ -1,11 +1,12 @@
 package endpoints
 
 import (
+	"encoding/json"
+	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi"
-	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/yelsukov/otus-ha/dialogue/domain/entities"
@@ -13,11 +14,11 @@ import (
 	"github.com/yelsukov/otus-ha/dialogue/server"
 )
 
-func GetMessagesRoutes(storage storages.MessageStorage) *chi.Mux {
+func GetMessagesRoutes(msgStorage storages.MessageStorage, chtStorage storages.ChatStorage) *chi.Mux {
 	r := chi.NewRouter()
-	r.Get("/", fetchMessages(storage))
-	r.Get("/{id:[0-9]+}", getMessage(storage))
-	r.Post("/", createMessage(storage))
+	r.Get("/", fetchMessages(msgStorage))
+	r.Get("/{id:[0-9]+}", getMessage(msgStorage))
+	r.Post("/", createMessage(msgStorage, chtStorage))
 	return r
 }
 
@@ -37,19 +38,26 @@ func prepareMessageList(messages []entities.Message) *[]messageResponse {
 
 func fetchMessages(s storages.MessageStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		chatId := r.URL.Query().Get("chat_id")
-		if chatId == "" {
-			server.ResponseWithError(w, entities.NewError("4040", "Chat Not Found"))
+		chatId, err := primitive.ObjectIDFromHex(r.URL.Query().Get("chat_id"))
+		if err != nil {
+			server.ResponseWithError(w, entities.NewError("4001", "invalid chat id"))
 			return
 		}
 
-		lastId := r.URL.Query().Get("last_id")
+		var lastId primitive.ObjectID
+		if lid := r.URL.Query().Get("cursor"); lid != "" {
+			lastId, err = primitive.ObjectIDFromHex(lid)
+			if err != nil {
+				server.ResponseWithError(w, entities.NewError("4005", "invalid cursor"))
+				return
+			}
+		}
 		var limit int
 		if strLimit := r.URL.Query().Get("limit"); strLimit != "" {
 			limit, _ = strconv.Atoi(strLimit)
 		}
 
-		messages, err := s.ReadMany(chatId, lastId, uint32(limit))
+		messages, err := s.ReadMany(&chatId, &lastId, uint32(limit))
 		if err != nil {
 			server.ResponseWithError(w, err)
 			return
@@ -61,14 +69,18 @@ func fetchMessages(s storages.MessageStorage) http.HandlerFunc {
 
 func getMessage(s storages.MessageStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, "id")
-		if id == "" {
-			server.ResponseWithError(w, entities.NewError("4041", "Message Not Found"))
+		id, err := primitive.ObjectIDFromHex(chi.URLParam(r, "id"))
+		if err != nil {
+			server.ResponseWithError(w, entities.NewError("4006", "invalid message id"))
 			return
 		}
-		message, err := s.ReadOne(id)
+		message, err := s.ReadOne(&id)
 		if err != nil {
-			server.ResponseWithError(w, err)
+			if err == mongo.ErrNoDocuments {
+				server.ResponseWithError(w, entities.NewError("4041", "Message Not Found"))
+			} else {
+				server.ResponseWithError(w, err)
+			}
 			return
 		}
 
@@ -76,32 +88,52 @@ func getMessage(s storages.MessageStorage) http.HandlerFunc {
 	}
 }
 
-func createMessage(s storages.MessageStorage) http.HandlerFunc {
+type postMessageBody struct {
+	CID primitive.ObjectID `json:"chat_id"`
+	AID int                `json:"author_id"`
+	Txt string             `json:"text"`
+}
+
+func createMessage(ms storages.MessageStorage, cs storages.ChatStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cid, err := primitive.ObjectIDFromHex(chi.URLParam(r, "chat_id"))
+		var body postMessageBody
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			server.ResponseWithError(w, entities.NewError("4000", "invalid JSON payload"))
+			return
+		}
+
+		chat, err := cs.ReadOne(&body.CID)
 		if err != nil {
-			log.WithError(err).Error("failed to parse chat id to ObjectId")
-			server.ResponseWithError(w, entities.NewError("4001", "invalid chat ID"))
+			if err == mongo.ErrNoDocuments {
+				server.ResponseWithError(w, entities.NewError("4040", "Chat Not Found"))
+			} else {
+				server.ResponseWithError(w, err)
+			}
 			return
 		}
-		aid, err := strconv.Atoi(chi.URLParam(r, "author_id"))
-		if err != nil || aid == 0 {
-			server.ResponseWithError(w, entities.NewError("4002", "invalid author ID"))
-			return
+		var found = false
+		for _, uid := range chat.Users { // TODO method with split search
+			if uid == body.AID {
+				found = true
+				break
+			}
 		}
-		text := chi.URLParam(r, "message")
-		if text == "" {
-			server.ResponseWithError(w, entities.NewError("4003", "message cannot be empty"))
-			return
+		// if it is new user in chat
+		if !found {
+			chat.Users = append(chat.Users, body.AID)
+			if err := cs.Update(chat); err != nil {
+				server.ResponseWithError(w, err)
+				return
+			}
 		}
 
 		message := entities.Message{
-			ChatId:   cid,
-			AuthorId: uint64(aid),
-			Text:     text,
+			ChatId:   body.CID,
+			AuthorId: body.AID,
+			Text:     body.Txt,
 		}
 
-		if err := s.InsertOne(&message); err != nil {
+		if err := ms.InsertOne(&message); err != nil {
 			server.ResponseWithError(w, err)
 			return
 		}

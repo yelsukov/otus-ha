@@ -97,8 +97,9 @@ func main() {
 
 	log.Info("creating http server and endpoint...")
 	s := server.NewServer(ctx, cfg.ServerPort)
-	s.MountRoutes("/chats", endpoints.GetChatsRoutes(storages.NewChatStorage(ctx, db)))
-	s.MountRoutes("/messages", endpoints.GetMessagesRoutes(storages.NewMessageStorage(ctx, db)))
+	chatStorage := storages.NewChatStorage(ctx, db)
+	s.MountRoutes("/chats", endpoints.GetChatsRoutes(chatStorage))
+	s.MountRoutes("/messages", endpoints.GetMessagesRoutes(storages.NewMessageStorage(ctx, db), chatStorage))
 	log.Info("running http server...")
 	s.Serve()
 

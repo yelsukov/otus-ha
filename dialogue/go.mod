@@ -5,6 +5,7 @@ go 1.14
 require (
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/sirupsen/logrus v1.7.0
-	github.com/yelsukov/otus-ha/backend v0.0.0-20210126174509-693686404028
 	go.mongodb.org/mongo-driver v1.4.5
+	golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee // indirect
+	golang.org/x/sys v0.0.0-20191220142924-d4481acd189f // indirect
 )

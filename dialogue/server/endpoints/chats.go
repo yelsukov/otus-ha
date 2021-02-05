@@ -2,6 +2,7 @@ package endpoints
 
 import (
 	"encoding/json"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
 	"strconv"
@@ -36,19 +37,26 @@ func prepareChatsList(chats []entities.Chat) *[]chatResponse {
 
 func fetchChats(s storages.ChatStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userId := r.URL.Query().Get("user_id")
-		if userId == "" {
-			server.ResponseWithError(w, entities.NewError("4000", "user id can't be empty"))
+		userId, err := strconv.Atoi(r.URL.Query().Get("user_id"))
+		if err != nil {
+			server.ResponseWithError(w, entities.NewError("4000", "user id is invalid"))
 			return
 		}
 
-		lastId := r.URL.Query().Get("last_id")
+		var lastId primitive.ObjectID
+		if lid := r.URL.Query().Get("cursor"); lid != "" {
+			lastId, err = primitive.ObjectIDFromHex(lid)
+			if err != nil {
+				server.ResponseWithError(w, entities.NewError("4005", "invalid cursor"))
+				return
+			}
+		}
 		var limit int
 		if strLimit := r.URL.Query().Get("limit"); strLimit != "" {
 			limit, _ = strconv.Atoi(strLimit)
 		}
 
-		chats, err := s.ReadMany(userId, lastId, uint32(limit))
+		chats, err := s.ReadMany(userId, &lastId, uint32(limit))
 		if err != nil {
 			server.ResponseWithError(w, err)
 			return
@@ -60,12 +68,12 @@ func fetchChats(s storages.ChatStorage) http.HandlerFunc {
 
 func getChat(s storages.ChatStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, "id")
-		if id == "" {
-			server.ResponseWithError(w, entities.NewError("4040", "Chat Not Found"))
+		id, err := primitive.ObjectIDFromHex(chi.URLParam(r, "id"))
+		if err != nil {
+			server.ResponseWithError(w, entities.NewError("4001", "invalid chat id"))
 			return
 		}
-		chat, err := s.ReadOne(id)
+		chat, err := s.ReadOne(&id)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
 				server.ResponseWithError(w, entities.NewError("4040", "Chat Not Found"))
@@ -80,7 +88,7 @@ func getChat(s storages.ChatStorage) http.HandlerFunc {
 }
 
 type postChatBody struct {
-	Users [2]string `json:"users"`
+	Users []int `json:"users"`
 }
 
 func createChat(s storages.ChatStorage) http.HandlerFunc {

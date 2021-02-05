@@ -17,7 +17,7 @@ services:
       context: .
       args:
         TOKEN: "${TOKEN}"
-        VERSION: "0.0.1"
+        VERSION: "0.0.2"
     restart: always
     ports:
       - 8008:${SERVER_PORT}
