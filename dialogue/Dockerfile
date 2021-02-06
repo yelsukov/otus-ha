@@ -31,8 +31,13 @@ RUN go mod verify
 
 COPY . .
 
+# Specify version
+ARG VERSION
+# Specify the backend token
+ARG TOKEN
+
 # Build the binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s -X main.VERSION=${VERSION}" -o /go/bin/server
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s -X github.com/yelsukov/otus-ha/dialogue/vars.VERSION=${VERSION} -X github.com/yelsukov/otus-ha/dialogue/vars.TOKEN=${TOKEN}" -o /go/bin/dialogue
 
 ###############################
 # STEP 2: build a small image #
@@ -45,11 +50,10 @@ COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
 
 # Copy binary file
-COPY --from=builder /go/bin/server /go/bin/server
-COPY --from=builder /go/src/backend/migrations /go/backend/migrations
+COPY --from=builder /go/bin/dialogue /go/bin/dialogue
 
 # Use an unprivileged user.
-USER appuser:appuser
+USER ${USER}:${USER}
 
 # Run the binary.
-ENTRYPOINT ["/go/bin/server"]
+ENTRYPOINT ["/go/bin/dialogue"]
