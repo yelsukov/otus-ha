@@ -18,7 +18,13 @@ up:
 	sudo docker-compose -f docker-compose.${TYPE}.yml up --build -d
 
 down:
-	sudo docker-compose -f docker-compose.${TYPE}.yml down
+	sudo docker-compose -f docker-compose.${TYPE}.yml down -v
+
+upFull:
+	sudo docker-compose -f docker-compose.cluster.yml -f docker-compose.dialogue.yml up --build -d
+
+downFull:
+	sudo docker-compose -f docker-compose.cluster.yml -f docker-compose.dialogue.yml down -v
 
 startReplica:
 	sudo docker-compose -f docker-compose.replica.yml up --build -d

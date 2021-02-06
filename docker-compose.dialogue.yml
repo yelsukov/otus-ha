@@ -1,0 +1,146 @@
+version: '2.4'
+
+services:
+
+  ## Shards
+  mongo01Mstr:
+    image: mongo:4.4.3
+    command: mongod --port 27017 --shardsvr --replSet shard01 --oplogSize 16
+    healthcheck:
+      test: "bash -c \"if mongo --port 27017 --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0: 2)'; then exit 0; fi; exit 1;\""
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    networks:
+      - dlg
+  mongo01Repl:
+    image: mongo:4.4.3
+    command: mongod --port 27017 --shardsvr --replSet shard01 --oplogSize 16
+    healthcheck:
+      test: "bash -c \"if mongo --port 27017 --eval 'quit(db.runCommand({ping:1}).ok?0:2)'; then exit 0; fi; exit 1;\""
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    networks:
+      - dlg
+
+  mongo02Mstr:
+    image: mongo:4.4.3
+    command: mongod --port 27017 --shardsvr --replSet shard02 --oplogSize 16
+    healthcheck:
+      test: "bash -c \"if mongo --port 27017 --eval 'quit(db.runCommand({ping:1}).ok?0:2)'; then exit 0; fi; exit 1;\""
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    networks:
+      - dlg
+  mongo02Repl:
+    image: mongo:4.4.3
+    command: mongod --port 27017 --shardsvr --replSet shard02 --oplogSize 16
+    healthcheck:
+      test: "bash -c \"if mongo --port 27017 --eval 'quit(db.runCommand({ping:1}).ok?0:2)'; then exit 0; fi; exit 1;\""
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    networks:
+      - dlg
+
+  mongo03Mstr:
+    image: mongo:4.4.3
+    command: mongod --port 27017 --shardsvr --replSet shard03 --oplogSize 16
+    healthcheck:
+      test: "bash -c \"if mongo --port 27017 --eval 'quit(db.runCommand({ping:1}).ok?0:2)'; then exit 0; fi; exit 1;\""
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    networks:
+      - dlg
+  mongo03Repl:
+    image: mongo:4.4.3
+    command: mongod --port 27017 --shardsvr --replSet shard03 --oplogSize 16
+    healthcheck:
+      test: "bash -c \"if mongo --port 27017 --eval 'quit(db.runCommand({ping:1}).ok?0:2)'; then exit 0; fi; exit 1;\""
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    networks:
+      - dlg
+
+  ## Config Server
+  mongoConfig:
+    image: mongo:4.4.3
+    command: mongod --port 27017 --configsvr --replSet configServer --oplogSize 16
+    healthcheck:
+      test: "bash -c \"if mongo --port 27017 --eval 'quit(db.runCommand({ping:1}).ok?0:2)'; then exit 0; fi; exit 1;\""
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    networks:
+      - dlg
+
+  ## Router
+  mongoRouter:
+    image: mongo:4.4.3
+    container_name: mongoRouter
+    command: mongos --port 27017 --configdb configServer/mongoConfig:27017 --bind_ip_all
+    ports:
+      - 27017:27017
+    depends_on:
+      mongoConfig:
+        condition: service_healthy
+      mongo01Mstr:
+        condition: service_healthy
+      mongo01Repl:
+        condition: service_healthy
+      mongo02Mstr:
+        condition: service_healthy
+      mongo02Repl:
+        condition: service_healthy
+      mongo03Mstr:
+        condition: service_healthy
+      mongo03Repl:
+        condition: service_healthy
+    networks:
+      - dlg
+
+  # Shard starter
+  sharder:
+    container_name: "sharder"
+    build:
+      context: deployment/sharedCluster
+    environment:
+      DB_NAME: "${DB_NAME}"
+    depends_on:
+      - mongoRouter
+    networks:
+      - dlg
+
+  dialogue:
+    container_name: "dialogue"
+    build:
+      context: dialogue
+      args:
+        TOKEN: "${DIALOG_TOKEN}"
+        VERSION: "0.0.2"
+    restart: always
+    ports:
+      - 8008:${DIALOG_PORT}
+    environment:
+      MONGO_DSN: "mongodb://mongoRouter:27017"
+      DB_NAME: "${DB_NAME}"
+      DEBUG: "${DEBUG}"
+      SERVER_PORT: "${DIALOG_PORT}"
+    depends_on:
+      - sharder
+    networks:
+      - dlg
+      - hw
+
+
+networks:
+  dlg:
+    name: dlg
+    internal: true
+  hw:
+    name: hw
+    external: false
