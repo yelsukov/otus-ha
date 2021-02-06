@@ -24,6 +24,15 @@ func (c *Chat) BeforeSave() {
 	c.CreatedAt = time.Now().Unix()
 }
 
+func (c *Chat) HasUser(uid int) bool {
+	for _, u := range c.Users { // TODO method with split search
+		if uid == u {
+			return true
+		}
+	}
+	return false
+}
+
 // Unique removes duplicate elements from data. It assumes sort.IsSorted(data).
 func unique(data *[]int) {
 	sort.Ints(*data)

@@ -16,8 +16,7 @@ import (
 
 func GetMessagesRoutes(msgStorage storages.MessageStorage, chtStorage storages.ChatStorage) *chi.Mux {
 	r := chi.NewRouter()
-	r.Get("/", fetchMessages(msgStorage))
-	r.Get("/{id:[0-9]+}", getMessage(msgStorage))
+	r.Get("/", fetchMessages(msgStorage, chtStorage))
 	r.Post("/", createMessage(msgStorage, chtStorage))
 	return r
 }
@@ -36,11 +35,29 @@ func prepareMessageList(messages []entities.Message) *[]messageResponse {
 	return &list
 }
 
-func fetchMessages(s storages.MessageStorage) http.HandlerFunc {
+func fetchMessages(ms storages.MessageStorage, cs storages.ChatStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		chatId, err := primitive.ObjectIDFromHex(r.URL.Query().Get("chat_id"))
+		uid, err := strconv.Atoi(r.URL.Query().Get("user_id"))
+		if err != nil {
+			server.ResponseWithError(w, entities.NewError("4002", "invalid user id"))
+			return
+		}
+		cid, err := primitive.ObjectIDFromHex(r.URL.Query().Get("chat_id"))
 		if err != nil {
 			server.ResponseWithError(w, entities.NewError("4001", "invalid chat id"))
+			return
+		}
+		chat, err := cs.ReadOne(&cid)
+		if err != nil {
+			if err == mongo.ErrNoDocuments {
+				server.ResponseWithError(w, entities.NewError("4040", "Chat Not Found"))
+			} else {
+				server.ResponseWithError(w, err)
+			}
+			return
+		}
+		if !chat.HasUser(uid) {
+			server.ResponseWithError(w, entities.NewError("4031", "user do not belongs to chat"))
 			return
 		}
 
@@ -57,7 +74,7 @@ func fetchMessages(s storages.MessageStorage) http.HandlerFunc {
 			limit, _ = strconv.Atoi(strLimit)
 		}
 
-		messages, err := s.ReadMany(&chatId, &lastId, uint32(limit))
+		messages, err := ms.ReadMany(&cid, &lastId, uint32(limit))
 		if err != nil {
 			server.ResponseWithError(w, err)
 			return
@@ -67,30 +84,9 @@ func fetchMessages(s storages.MessageStorage) http.HandlerFunc {
 	}
 }
 
-func getMessage(s storages.MessageStorage) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		id, err := primitive.ObjectIDFromHex(chi.URLParam(r, "id"))
-		if err != nil {
-			server.ResponseWithError(w, entities.NewError("4006", "invalid message id"))
-			return
-		}
-		message, err := s.ReadOne(&id)
-		if err != nil {
-			if err == mongo.ErrNoDocuments {
-				server.ResponseWithError(w, entities.NewError("4041", "Message Not Found"))
-			} else {
-				server.ResponseWithError(w, err)
-			}
-			return
-		}
-
-		server.ResponseWithOk(w, &messageResponse{"message", message})
-	}
-}
-
 type postMessageBody struct {
 	CID primitive.ObjectID `json:"chat_id"`
-	AID int                `json:"author_id"`
+	UID int                `json:"user_id"`
 	Txt string             `json:"text"`
 }
 
@@ -111,26 +107,16 @@ func createMessage(ms storages.MessageStorage, cs storages.ChatStorage) http.Han
 			}
 			return
 		}
-		var found = false
-		for _, uid := range chat.Users { // TODO method with split search
-			if uid == body.AID {
-				found = true
-				break
-			}
-		}
 		// if it is new user in chat
-		if !found {
-			chat.Users = append(chat.Users, body.AID)
-			if err := cs.Update(chat); err != nil {
-				server.ResponseWithError(w, err)
-				return
-			}
+		if !chat.HasUser(body.UID) {
+			server.ResponseWithError(w, entities.NewError("4031", "user do not belongs to chat"))
+			return
 		}
 
 		message := entities.Message{
-			ChatId:   body.CID,
-			AuthorId: body.AID,
-			Text:     body.Txt,
+			ChatId: body.CID,
+			UserId: body.UID,
+			Text:   body.Txt,
 		}
 
 		if err := ms.InsertOne(&message); err != nil {

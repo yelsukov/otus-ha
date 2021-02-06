@@ -17,8 +17,9 @@ import (
 func GetChatsRoutes(storage storages.ChatStorage) *chi.Mux {
 	r := chi.NewRouter()
 	r.Get("/", fetchChats(storage))
-	r.Get("/{id:[0-9a-z]+}", getChat(storage))
+	r.Get("/{cid:[0-9a-z]+}", getChat(storage))
 	r.Post("/", createChat(storage))
+	r.Put("/", addUsers(storage))
 	return r
 }
 
@@ -68,18 +69,27 @@ func fetchChats(s storages.ChatStorage) http.HandlerFunc {
 
 func getChat(s storages.ChatStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id, err := primitive.ObjectIDFromHex(chi.URLParam(r, "id"))
+		uid, err := strconv.Atoi(r.URL.Query().Get("user_id"))
+		if err != nil {
+			server.ResponseWithError(w, entities.NewError("4002", "invalid user id"))
+			return
+		}
+		cid, err := primitive.ObjectIDFromHex(chi.URLParam(r, "cid"))
 		if err != nil {
 			server.ResponseWithError(w, entities.NewError("4001", "invalid chat id"))
 			return
 		}
-		chat, err := s.ReadOne(&id)
+		chat, err := s.ReadOne(&cid)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
 				server.ResponseWithError(w, entities.NewError("4040", "Chat Not Found"))
 			} else {
 				server.ResponseWithError(w, err)
 			}
+			return
+		}
+		if !chat.HasUser(uid) {
+			server.ResponseWithError(w, entities.NewError("4031", "user do not belongs to chat"))
 			return
 		}
 
@@ -106,5 +116,40 @@ func createChat(s storages.ChatStorage) http.HandlerFunc {
 		}
 
 		server.ResponseWithOk(w, &chatResponse{"chat", &chat})
+	}
+}
+
+type putAddUsers struct {
+	CID   primitive.ObjectID `json:"chat_id"`
+	Users []int              `json:"users"`
+}
+
+func addUsers(cs storages.ChatStorage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var body putAddUsers
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			server.ResponseWithError(w, entities.NewError("4000", "invalid JSON payload"))
+			return
+		}
+
+		chat, err := cs.ReadOne(&body.CID)
+		if err != nil {
+			if err == mongo.ErrNoDocuments {
+				server.ResponseWithError(w, entities.NewError("4040", "Chat Not Found"))
+			} else {
+				server.ResponseWithError(w, err)
+			}
+			return
+		}
+
+		if len(body.Users) > 0 {
+			chat.Users = append(chat.Users, body.Users...)
+			if err := cs.Update(chat); err != nil {
+				server.ResponseWithError(w, err)
+				return
+			}
+		}
+
+		server.ResponseWithOk(w, &chatResponse{"chat", chat})
 	}
 }
