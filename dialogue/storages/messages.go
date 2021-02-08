@@ -43,7 +43,7 @@ func (m *MessageStorage) ReadMany(chatId, lastId *primitive.ObjectID, limit uint
 	var messages []entities.Message
 
 	opts := options.Find()
-	opts.SetSort(bson.D{{"$natural", -1}})
+	opts.SetSort(bson.D{{"ts", -1}})
 	if limit == 0 {
 		limit = 25
 	}

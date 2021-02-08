@@ -84,7 +84,7 @@ services:
     container_name: mongoRouter
     command: mongos --port 27017 --configdb configServer/mongoConfig:27017 --bind_ip_all
     ports:
-      - 27017:27017
+      - 27117:27017
     depends_on:
       mongoConfig:
         condition: service_healthy
@@ -124,7 +124,7 @@ services:
         VERSION: "0.0.2"
     restart: always
     ports:
-      - 8008:${DIALOG_PORT}
+      - 8009:${DIALOG_PORT}
     environment:
       MONGO_DSN: "mongodb://mongoRouter:27017"
       DB_NAME: "${DB_NAME}"
