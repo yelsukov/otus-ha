@@ -3,7 +3,9 @@ package v1
 import (
 	"context"
 	"database/sql"
+	"github.com/yelsukov/otus-ha/backend/bus"
 	"github.com/yelsukov/otus-ha/backend/errors"
+	"github.com/yelsukov/otus-ha/backend/providers/news"
 	"net/http"
 	"strings"
 
@@ -19,7 +21,7 @@ import (
 
 const version = "1.0.0"
 
-func InitApiMux(db *sql.DB, cfg *conf.Config) *chi.Mux {
+func InitApiMux(db *sql.DB, bus *bus.Producer, cfg *conf.Config) *chi.Mux {
 	authorizer := &jwt.JWT{Secret: []byte(cfg.JwtSecret), Ttl: cfg.JwtTtl}
 
 	router := chi.NewRouter()
@@ -44,11 +46,18 @@ func InitApiMux(db *sql.DB, cfg *conf.Config) *chi.Mux {
 	router.Route("/friends", func(r chi.Router) {
 		r.Use(authenticationMiddleware(authorizer))
 		r.Get("/", handlers.FetchFriends(userStore))
-		r.Post("/{friend_id:[0-9]+}", handlers.AddFriend(friendsStore, userStore))
-		r.Delete("/{friend_id:[0-9]+}", handlers.DeleteFriend(friendsStore, userStore))
+		r.Post("/{friend_id:[0-9]+}", handlers.AddFriend(friendsStore, userStore, bus))
+		r.Delete("/{friend_id:[0-9]+}", handlers.DeleteFriend(friendsStore, userStore, bus))
 	})
 
-	router.Post("/auth/sign-in", handlers.LoginHandler(userStore, authorizer))
+	newsProvider := news.NewNewsService(cfg.NewsServiceToken, cfg.NewsServiceUrl)
+	router.Route("/news", func(r chi.Router) {
+		r.Use(authenticationMiddleware(authorizer))
+		r.Get("/", handlers.GetNews(newsProvider))
+	})
+
+	router.Post("/auth/sign-in", handlers.LoginHandler(userStore, authorizer, bus))
+	router.With(authenticationMiddleware(authorizer)).Post("/auth/sign-out", handlers.LogoutHandler(userStore, bus))
 	router.Post("/auth/sign-up", handlers.SignupHandler(userStore, authorizer))
 
 	router.NotFound(func(w http.ResponseWriter, r *http.Request) {

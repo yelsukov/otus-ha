@@ -1,0 +1,30 @@
+version: '2.4'
+
+services:
+
+  zookeeper:
+    container_name: zookeeper
+    image: zookeeper:3.6.1
+    restart: unless-stopped
+    networks:
+      - infra
+
+  kafka:
+    image: wurstmeister/kafka:2.13-2.7.0
+    container_name: kafka
+    restart: unless-stopped
+    environment:
+      KAFKA_CREATE_TOPICS: "${BUS_TOPIC}:3:1"
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    #      JMX_PORT: 1099
+    ports:
+      - 9092:9092
+    depends_on:
+      - zookeeper
+    networks:
+      - infra
+
+networks:
+  infra:
+    name: infra

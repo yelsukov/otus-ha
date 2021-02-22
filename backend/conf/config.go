@@ -16,6 +16,7 @@ const (
 	defaultDbConnLife = time.Minute * 2
 	defaultReqTimeout = time.Second * 2
 	defaultJwtTtl     = time.Hour * 1
+	defaultBusTopic   = "user.events"
 )
 
 // Config struct holds application's parameters
@@ -29,6 +30,11 @@ type Config struct {
 	DbMaxIdleConn    int
 	DbConnMaxLife    time.Duration
 	DbMigrationsPath string
+	BusDSN           string
+	BusTopic         string
+
+	NewsServiceToken string
+	NewsServiceUrl   string
 
 	ServerPort     string
 	RequestTimeout time.Duration // in seconds
@@ -77,6 +83,20 @@ func PopulateConfig() (*Config, error) {
 
 	if cfg.ServerPort, exist = os.LookupEnv("SERVER_PORT"); !exist {
 		cfg.ServerPort = defaultServerPort
+	}
+
+	if cfg.BusDSN, exist = os.LookupEnv("BUS_DSN"); !exist {
+		return nil, errors.New("ENV `BUS_DSN` should be specified")
+	}
+	if cfg.BusTopic, exist = os.LookupEnv("BUS_TOPIC"); !exist {
+		cfg.BusTopic = defaultBusTopic
+	}
+
+	if cfg.NewsServiceToken, exist = os.LookupEnv("NEWS_TOKEN"); !exist {
+		return nil, errors.New("ENV `NEWS_TOKEN` should be specified")
+	}
+	if cfg.NewsServiceUrl, exist = os.LookupEnv("NEWS_URL"); !exist {
+		return nil, errors.New("ENV `NEWS_URL` should be specified")
 	}
 
 	cfg.RequestTimeout = defaultReqTimeout

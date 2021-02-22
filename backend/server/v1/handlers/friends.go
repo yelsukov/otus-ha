@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/go-chi/chi"
+	"github.com/yelsukov/otus-ha/backend/bus"
 	"github.com/yelsukov/otus-ha/backend/models"
 	"github.com/yelsukov/otus-ha/backend/server/v1/responses"
 	"net/http"
@@ -12,9 +13,14 @@ type friendAdder interface {
 	Add(userId, friendId int64) error
 }
 
-func AddFriend(store friendAdder, userStore userCruder) http.HandlerFunc {
+func AddFriend(store friendAdder, userStore userCruder, bus *bus.Producer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userId := r.Context().Value("currentUserId").(int64)
+		user, err := userStore.Get(userId)
+		if err != nil {
+			responses.ResponseWithError(w, err)
+			return
+		}
 
 		friendId, err := strconv.Atoi(chi.URLParam(r, "friend_id"))
 		if err != nil {
@@ -31,6 +37,13 @@ func AddFriend(store friendAdder, userStore userCruder) http.HandlerFunc {
 			responses.ResponseWithError(w, err)
 			return
 		}
+
+		go bus.WriteEvent(
+			"follow",
+			user.Username+" now follows for the "+friend.Username,
+			int(userId),
+			friendId,
+		)
 
 		responses.ResponseWithOk(w, NewUserResponse(&friend))
 	}
@@ -66,9 +79,14 @@ type friendshipDeleter interface {
 	Delete(userId, friendId int64) error
 }
 
-func DeleteFriend(store friendshipDeleter, userStore userCruder) http.HandlerFunc {
+func DeleteFriend(store friendshipDeleter, userStore userCruder, bus *bus.Producer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userId := r.Context().Value("currentUserId").(int64)
+		user, err := userStore.Get(userId)
+		if err != nil {
+			responses.ResponseWithError(w, err)
+			return
+		}
 
 		friendId, err := strconv.Atoi(chi.URLParam(r, "friend_id"))
 		if err != nil {
@@ -85,6 +103,13 @@ func DeleteFriend(store friendshipDeleter, userStore userCruder) http.HandlerFun
 			responses.ResponseWithError(w, err)
 			return
 		}
+
+		go bus.WriteEvent(
+			"unfollow",
+			user.Username+" does not follows for the "+friend.Username+" anymore",
+			int(userId),
+			friendId,
+		)
 
 		responses.ResponseWithOk(w, NewUserResponse(&friend))
 	}

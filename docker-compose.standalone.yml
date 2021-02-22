@@ -19,7 +19,7 @@ services:
     ports:
       - 3336:3306
     networks:
-      - hw
+      - infra
 
   backend:
     container_name: "backend"
@@ -31,15 +31,19 @@ services:
     environment:
       JWT_SECRET: "${JWT_SECRET}"
       DB_HOST: "mysqldb"
-      DB_USER: "${DB_USER}"
-      DB_PASSWORD: "${DB_PASSWORD}"
+      DB_USER: "${MASTER_USER}"
+      DB_PASSWORD: "${MASTER_PASSWORD}"
       DB_NAME: "${DB_NAME}"
+      BUS_DSN: "${BUS_DSN}"
+      BUS_TOPIC: "${BUS_TOPIC}"
       DEBUG: "${DEBUG}"
+      NEWS_TOKEN: "${NEWS_TOKEN}"
+      NEWS_URL: "http://news:${NEWS_PORT}"
     depends_on:
       mysqldb:
         condition: service_healthy
     networks:
-      - hw
+      - infra
 
   frontend:
     container_name: "frontend"
@@ -49,10 +53,9 @@ services:
     ports:
       - 8008:80
     networks:
-      - hw
-
+      - infra
 
 networks:
-  hw:
-    name: hw
-    external: false
+  infra:
+    name: infra
+    external: true

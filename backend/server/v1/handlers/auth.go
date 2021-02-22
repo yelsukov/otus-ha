@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"github.com/yelsukov/otus-ha/backend/bus"
 	"net/http"
 
 	"github.com/yelsukov/otus-ha/backend/errors"
@@ -62,7 +63,7 @@ type authenticator interface {
 	Login(username, password string) (models.User, error)
 }
 
-func LoginHandler(store authenticator, jwt jwt.Tokenizer) http.HandlerFunc {
+func LoginHandler(store authenticator, jwt jwt.Tokenizer, bus *bus.Producer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body SignInRequest
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -90,6 +91,23 @@ func LoginHandler(store authenticator, jwt jwt.Tokenizer) http.HandlerFunc {
 			return
 		}
 
+		go bus.WriteEvent("login", user.Username+" just logged in", int(user.Id), 0)
+
 		responses.ResponseWithOk(w, token)
+	}
+}
+
+func LogoutHandler(store userCruder, bus *bus.Producer) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userId := r.Context().Value("currentUserId").(int64)
+		user, err := store.Get(userId)
+		if err != nil {
+			responses.ResponseWithError(w, err)
+			return
+		}
+
+		go bus.WriteEvent("logout", user.Username+" just logged out", int(user.Id), 0)
+
+		responses.ResponseWithOk(w, nil)
 	}
 }
