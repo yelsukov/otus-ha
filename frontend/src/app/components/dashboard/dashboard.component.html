@@ -4,8 +4,24 @@
         <div *ngIf="loading" class="spinner-border spinner-border-sm"></div>
         <ul *ngIf="users">
             <li *ngFor="let user of users">
-                <a  [routerLink]="['/user', user.id]">[{{user.username}}] {{user.firstName}} {{user.lastName}}</a>
+                <a [routerLink]="['/user', user.id]">[{{user.username}}] {{user.firstName}} {{user.lastName}}</a>
             </li>
         </ul>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-body">
+        <h6>News of friends</h6>
+        <div *ngIf="loadingNews" class="spinner-border spinner-border-sm"></div>
+        <div class="list-group" *ngIf="news">
+            <a href="#" class="list-group-item list-group-item-action" *ngFor="let event of news">
+                <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1">{{event.name}}</h5>
+                    <small class="text-muted">{{(event.ts * 1000) | date:'dd/MM/yyyy'}}</small>
+                </div>
+                <p class="mb-1">{{event.message}}</p>
+            </a>
+        </div>
     </div>
 </div>

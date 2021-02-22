@@ -17,8 +17,7 @@ export class ErrorInterceptor implements HttpInterceptor {
             if (err.status === 401 && location.pathname !== '/login') {
                 // auto logout if 401 response returned from api
                 this.authenticationService.logout();
-                location.reload(true);
-                message = 'Session is expired';
+                setTimeout(() => location.pathname = '/login', 100);
             } else {
                 message = message = !!err.error ? err.error.message : err.statusText;
                 err.status !== 500 ?

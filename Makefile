@@ -21,10 +21,10 @@ down:
 	sudo docker-compose -f docker-compose.${TYPE}.yml down -v
 
 upFull:
-	sudo docker-compose -f docker-compose.cluster.yml -f docker-compose.dialogue.yml up --build -d
+	sudo docker-compose -f docker-compose.standalone.yml -f docker-compose.news.yml -f docker-compose.infra.yml up --build -d
 
 downFull:
-	sudo docker-compose -f docker-compose.cluster.yml -f docker-compose.dialogue.yml down -v
+	sudo docker-compose -f docker-compose.standalone.yml -f docker-compose.news.yml -f docker-compose.infra.yml down -v
 
 startReplica:
 	sudo docker-compose -f docker-compose.replica.yml up --build -d

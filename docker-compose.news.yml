@@ -1,0 +1,62 @@
+version: '2.4'
+
+services:
+  mongodb:
+    image: mongo:4.4.3
+    container_name: mongodb
+    command: mongod --port 27017 --oplogSize 16
+    healthcheck:
+      test: "bash -c \"if mongo --port 27017 --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0: 2)'; then exit 0; fi; exit 1;\""
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    ports:
+      - 27717:27017
+    networks:
+      - infra
+
+  redis:
+    image: redis:6.0.10
+    container_name: redis
+    ports:
+      - 6379:6379
+    restart: unless-stopped
+    healthcheck:
+      interval: 30s
+      retries: 3
+      test: [ "CMD", "redis-cli","ping" ]
+      timeout: 10s
+    networks:
+      - infra
+
+  news:
+    container_name: news
+    build:
+      context: news
+      args:
+        TOKEN: "${NEWS_TOKEN}"
+        VERSION: "0.0.1"
+    restart: always
+    ports:
+      - 8010:${NEWS_PORT}
+    environment:
+      DB_NAME: "${DB_NAME}"
+      MONGO_DSN: "mongodb://mongodb:27017"
+      CACHE_DSN: "redis:6379"
+      BUS_DSN: "${BUS_DSN}"
+      BUS_TOPIC: "${BUS_TOPIC}"
+      BUS_PARTITIONS: "${BUS_PARTITIONS}"
+      SERVER_PORT: "${NEWS_PORT}"
+      DEBUG: "${DEBUG}"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - infra
+
+networks:
+  infra:
+    name: infra
+    external: true

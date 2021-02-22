@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"github.com/yelsukov/otus-ha/backend/bus"
 	"os"
 	"os/signal"
 	"syscall"
@@ -87,6 +88,9 @@ func main() {
 	}
 	log.Infof("applied %d migrations!", n)
 
+	eventBus := bus.NewProducer(ctx, config.BusDSN, config.BusTopic)
+	defer eventBus.Close()
+
 	// Create the interruption channel end lock until it gets interruption signal from OS
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGKILL, syscall.SIGINT, syscall.SIGTERM)
@@ -99,6 +103,6 @@ func main() {
 	}()
 
 	log.Info("running http server...")
-	s := server.NewServer(ctx, config, db)
+	s := server.NewServer(ctx, config, db, eventBus)
 	s.Serve()
 }
