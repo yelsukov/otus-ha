@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"github.com/yelsukov/otus-ha/backend/bus"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,12 +10,15 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
+	"github.com/tarantool/go-tarantool"
 
 	"github.com/rubenv/sql-migrate"
+	"github.com/yelsukov/otus-ha/backend/bus"
 	"github.com/yelsukov/otus-ha/backend/conf"
 	"github.com/yelsukov/otus-ha/backend/server"
 )
 
+// TODO add correct graceful shutdown for server and databases
 var VERSION = "0.0.1"
 
 func connectDb(cfg *conf.Config) (*sql.DB, error) {
@@ -67,6 +69,30 @@ func main() {
 		log.SetLevel(log.DebugLevel)
 	}
 
+	var ttConn *tarantool.Connection
+	if config.TaranDsn != "" {
+		log.Info("connecting with tarantool")
+		if ttConn, err = tarantool.Connect(config.TaranDsn, tarantool.Opts{
+			Timeout:       3 * time.Second,
+			Reconnect:     1 * time.Second,
+			MaxReconnects: 5,
+			User:          config.TaranUser,
+			Pass:          config.TaranPass,
+		}); err != nil {
+			log.WithError(err).Fatal("failed connect to tarantool")
+		}
+		if _, err = ttConn.Ping(); err != nil {
+			log.WithError(err).Fatal("tarantool doesn't respond")
+		} else {
+			log.Info("successfully connected with tarantool")
+		}
+	}
+	defer func() {
+		if err = ttConn.Close(); err != nil {
+			log.WithError(err).Error("failed to disconnect from tarantool")
+		}
+	}()
+
 	// Connect to db and implement migrations
 	log.Info("connecting to db...")
 	db, err := connectDb(config)
@@ -103,6 +129,6 @@ func main() {
 	}()
 
 	log.Info("running http server...")
-	s := server.NewServer(ctx, config, db, eventBus)
+	s := server.NewServer(ctx, config, db, ttConn, eventBus)
 	s.Serve()
 }
