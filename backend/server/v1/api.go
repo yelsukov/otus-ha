@@ -3,25 +3,27 @@ package v1
 import (
 	"context"
 	"database/sql"
-	"github.com/yelsukov/otus-ha/backend/bus"
-	"github.com/yelsukov/otus-ha/backend/errors"
-	"github.com/yelsukov/otus-ha/backend/providers/news"
 	"net/http"
 	"strings"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/tarantool/go-tarantool"
 
+	"github.com/yelsukov/otus-ha/backend/bus"
 	"github.com/yelsukov/otus-ha/backend/conf"
+	"github.com/yelsukov/otus-ha/backend/errors"
 	"github.com/yelsukov/otus-ha/backend/jwt"
+	"github.com/yelsukov/otus-ha/backend/providers/news"
 	"github.com/yelsukov/otus-ha/backend/server/v1/handlers"
 	"github.com/yelsukov/otus-ha/backend/server/v1/responses"
-	"github.com/yelsukov/otus-ha/backend/storages"
+	"github.com/yelsukov/otus-ha/backend/storages/mysql"
+	"github.com/yelsukov/otus-ha/backend/storages/nosql"
 )
 
 const version = "1.0.0"
 
-func InitApiMux(db *sql.DB, bus *bus.Producer, cfg *conf.Config) *chi.Mux {
+func InitApiMux(db *sql.DB, tdb *tarantool.Connection, bus *bus.Producer, cfg *conf.Config) *chi.Mux {
 	authorizer := &jwt.JWT{Secret: []byte(cfg.JwtSecret), Ttl: cfg.JwtTtl}
 
 	router := chi.NewRouter()
@@ -33,11 +35,17 @@ func InitApiMux(db *sql.DB, bus *bus.Producer, cfg *conf.Config) *chi.Mux {
 		middleware.SetHeader("Version", version),
 	)
 
-	userStore := storages.NewUsersStorage(db)
-	friendsStore := storages.NewFriendsStorage(db)
+	var prefixSearcher handlers.PrefixSearcher
+	userStore := mysql.NewUsersStorage(db)
+	if tdb == nil {
+		prefixSearcher = userStore
+	} else {
+		prefixSearcher = nosql.NewUsersStorage(tdb)
+	}
+	friendsStore := mysql.NewFriendsStorage(db)
 	router.Route("/users", func(r chi.Router) {
 		r.Use(authenticationMiddleware(authorizer))
-		r.Get("/", handlers.GetUsers(userStore))
+		r.Get("/", handlers.GetUsers(prefixSearcher))
 		r.Get("/{id:[0-9]+}", handlers.GetUser(userStore, friendsStore))
 		r.Get("/me", handlers.GetMe(userStore))
 		r.Put("/me", handlers.UpdateMe(userStore))

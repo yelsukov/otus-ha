@@ -40,7 +40,7 @@
 
 <a name="configuration"></a>
 ### Конфигурация
-1. [Конфиг docker-compose](../../docker-compose.replica.yml)
+1. [Конфиг docker-compose](../../docker-compose.proxysql.yml)
 2. [Конфиг Master Node](../../deployment/replica/mysql/master.cnf)
 3. [Конфиг Slave Node](../../deployment/replica/mysql/slave.cnf)
 4. [Конфиг ProxySQL](../../deployment/proxysql/proxysql.cnf)

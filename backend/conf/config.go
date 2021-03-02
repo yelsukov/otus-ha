@@ -30,8 +30,13 @@ type Config struct {
 	DbMaxIdleConn    int
 	DbConnMaxLife    time.Duration
 	DbMigrationsPath string
-	BusDSN           string
-	BusTopic         string
+
+	TaranDsn  string
+	TaranUser string
+	TaranPass string
+
+	BusDSN   string
+	BusTopic string
 
 	NewsServiceToken string
 	NewsServiceUrl   string
@@ -80,6 +85,10 @@ func PopulateConfig() (*Config, error) {
 	if cfg.DbMigrationsPath, exist = os.LookupEnv("DB_MIGRATIONS_PATH"); !exist {
 		cfg.DbMigrationsPath = filepath.Dir(filepath.Dir(os.Args[0])) + "/backend/migrations"
 	}
+
+	cfg.TaranDsn, exist = os.LookupEnv("TARAN_DSN")
+	cfg.TaranUser = os.Getenv("TARAN_USER")
+	cfg.TaranPass = os.Getenv("TARAN_PASS")
 
 	if cfg.ServerPort, exist = os.LookupEnv("SERVER_PORT"); !exist {
 		cfg.ServerPort = defaultServerPort

@@ -1,0 +1,111 @@
+version: '2.4'
+
+services:
+
+  mysqldb:
+    image: mysql:5.7
+    container_name: "mysqldb"
+    hostname: "mysqldb"
+    restart: always
+    volumes:
+      - ./deployment/tarantool/mysql/master.cnf:/etc/mysql/conf.d/my.cnf
+    environment:
+      MYSQL_DATABASE: "${DB_NAME}"
+      MYSQL_USER: "${MASTER_USER}"
+      MYSQL_ROOT_PASSWORD: "${MASTER_PASSWORD}"
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_ROOT_PASSWORD
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    ports:
+      - 3336:3306
+    networks:
+      - taran
+
+  firestarter:
+    container_name: "firestarter"
+    build: deployment/tarantool/mysql
+    env_file:
+      - .env
+    depends_on:
+      mysqldb:
+        condition: service_healthy
+    command: bash setupReplica.sh
+    networks:
+      - taran
+
+  tarantool:
+    container_name: "tarantool"
+    build: deployment/tarantool
+    environment:
+      TARANTOOL_USER_NAME: ${TARAN_USER}
+      TARANTOOL_USER_PASSWORD: ${TARAN_PASS}
+    ports:
+      - 3301:3301
+    networks:
+      - taran
+
+  replicator:
+    container_name: "replicator"
+    build:
+      context: replicator
+    restart: always
+    depends_on:
+      tarantool:
+        condition: service_healthy
+      firestarter:
+        condition: service_started
+      backend:
+        condition: service_started
+    environment:
+      TARAN_DSN: "tarantool:3301"
+      TARAN_USER: "${TARAN_USER}"
+      TARAN_PASS: "${TARAN_PASS}"
+      REPL_TABLES: "users"
+      DATA_DIR: "/var/data/replicator"
+      MYSQL_DSN: "mysqldb:3306"
+      MYSQL_DBNAME: "${DB_NAME}"
+      MYSQL_USER: "${REPL_USER}"
+      MYSQL_PASS: "${REPL_PASSWORD}"
+      MYSQL_SERVER_ID: 1
+    networks:
+      - taran
+
+  backend:
+    container_name: "backend"
+    build:
+      context: backend
+    restart: always
+    ports:
+      - 8007:8080
+    environment:
+      JWT_SECRET: "${JWT_SECRET}"
+      DB_HOST: "mysqldb"
+      DB_USER: "${MASTER_USER}"
+      DB_PASSWORD: "${MASTER_PASSWORD}"
+      DB_NAME: "${DB_NAME}"
+      BUS_DSN: "${BUS_DSN}"
+      BUS_TOPIC: "${BUS_TOPIC}"
+      DEBUG: "${DEBUG}"
+      NEWS_TOKEN: "${NEWS_TOKEN}"
+      NEWS_URL: "http://news:${NEWS_PORT}"
+      TARAN_DSN: "tarantool:3301"
+      TARAN_USER: "${TARAN_USER}"
+      TARAN_PASS: "${TARAN_PASS}"
+    depends_on:
+      mysqldb:
+        condition: service_healthy
+      tarantool:
+        condition: service_healthy
+    networks:
+      - infra
+      - taran
+
+networks:
+  taran:
+    name: taran
+    internal: true
+  infra:
+    name: infra
+    external: true

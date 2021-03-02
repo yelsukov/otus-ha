@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"github.com/go-chi/chi/middleware"
+	"github.com/tarantool/go-tarantool"
 	"github.com/yelsukov/otus-ha/backend/bus"
 	v1 "github.com/yelsukov/otus-ha/backend/server/v1"
 	"net/http"
@@ -20,15 +21,17 @@ type Server struct {
 	cfg *conf.Config
 	mux *chi.Mux
 	db  *sql.DB
+	tt  *tarantool.Connection
 	bus *bus.Producer
 }
 
-func NewServer(ctx context.Context, cfg *conf.Config, db *sql.DB, bus *bus.Producer) *Server {
+func NewServer(ctx context.Context, cfg *conf.Config, db *sql.DB, tt *tarantool.Connection, bus *bus.Producer) *Server {
 	return &Server{
 		ctx,
 		cfg,
 		chi.NewRouter(),
 		db,
+		tt,
 		bus,
 	}
 }
@@ -59,7 +62,7 @@ func (s *Server) setupRoutes() {
 				next.ServeHTTP(w, r)
 			})
 		})
-		r.Mount("/v1", v1.InitApiMux(s.db, s.bus, s.cfg))
+		r.Mount("/v1", v1.InitApiMux(s.db, s.tt, s.bus, s.cfg))
 	})
 
 	s.mux.NotFound(func(w http.ResponseWriter, r *http.Request) {

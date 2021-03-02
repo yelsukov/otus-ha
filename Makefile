@@ -27,10 +27,16 @@ downFull:
 	sudo docker-compose -f docker-compose.standalone.yml -f docker-compose.news.yml -f docker-compose.infra.yml down -v
 
 startReplica:
-	sudo docker-compose -f docker-compose.replica.yml up --build -d
+	sudo docker-compose -f docker-compose.proxysql.yml up --build -d
 
 stopReplica:
-	sudo docker-compose -f docker-compose.replica.yml down -v
+	sudo docker-compose -f docker-compose.proxysql.yml down -v
+
+startTaran:
+	sudo docker-compose -f docker-compose.tarantool.yml -f docker-compose.infra.yml up --build -d
+
+stopTaran:
+	sudo docker-compose -f docker-compose.tarantool.yml -f docker-compose.infra.yml down -v
 
 startMonitor:
 	sudo docker-compose -f deployment/monitoring/docker-compose.yml up --build -d

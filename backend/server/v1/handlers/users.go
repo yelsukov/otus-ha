@@ -23,7 +23,7 @@ type UsersListResponse struct {
 type userCruder interface {
 	Create(user *models.User) (int64, error)
 	Get(id int64) (models.User, error)
-	Fetch(match [][2]string, lastId int64, limit uint32) ([]models.User, error)
+	Fetch(match [][2]string, offset, limit uint32) ([]models.User, error)
 	Update(user *models.User, clean *models.User) error
 }
 
@@ -54,27 +54,31 @@ func GetUser(store userCruder, friendship friendshipChecker) http.HandlerFunc {
 	}
 }
 
-func GetUsers(store userCruder) http.HandlerFunc {
+type PrefixSearcher interface {
+	PrefixSearch(fnPrefix, lnPrefix string, offset, limit uint32) ([]models.User, error)
+}
+
+func GetUsers(store PrefixSearcher) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var lastId, limit int
-		if strLastId := r.URL.Query().Get("last_id"); strLastId != "" {
-			lastId, _ = strconv.Atoi(strLastId)
+		var offset, limit int
+		if strOffset := r.URL.Query().Get("offset"); strOffset != "" {
+			offset, _ = strconv.Atoi(strOffset)
 		}
 		if strLimit := r.URL.Query().Get("limit"); strLimit != "" {
 			limit, _ = strconv.Atoi(strLimit)
 		}
 
-		match := make([][2]string, 0, 2)
 		firstName := r.URL.Query().Get("firstName")
-		if firstName != "" {
-			match = append(match, [2]string{"`first_name` LIKE (?)", firstName + "%"})
+		if firstName == "" {
+			responses.ResponseWithError(w, errors.New("4000", "`firstName` can't be empty"))
+			return
 		}
 		lastName := r.URL.Query().Get("lastName")
-		if lastName != "" {
-			match = append(match, [2]string{"`last_name` LIKE (?)", lastName + "%"})
+		if lastName == "" {
+			responses.ResponseWithError(w, errors.New("4000", "`lastName` can't be empty"))
+			return
 		}
-
-		users, err := store.Fetch(match, int64(lastId), uint32(limit))
+		users, err := store.PrefixSearch(firstName, lastName, uint32(offset), uint32(limit))
 		if err != nil {
 			responses.ResponseWithError(w, err)
 			return

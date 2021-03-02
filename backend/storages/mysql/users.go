@@ -1,4 +1,4 @@
-package storages
+package mysql
 
 import (
 	"database/sql"
@@ -7,6 +7,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type UsersStorage struct {
@@ -41,6 +42,7 @@ func (m *UsersStorage) Create(user *models.User) (int64, error) {
 	if err := m.validate(user, nil); err != nil {
 		return 0, err
 	}
+	user.CreatedAt = time.Now()
 
 	upd := prepareExecStmt(user, nil)
 	stmt, err := m.db.Prepare("INSERT `users` SET " + strings.Join(upd.Set, ","))
@@ -69,7 +71,7 @@ func (m *UsersStorage) Get(id int64) (models.User, error) {
 	return user, nil
 }
 
-func (m *UsersStorage) Fetch(match [][2]string, lastId int64, limit uint32) ([]models.User, error) {
+func (m *UsersStorage) Fetch(match [][2]string, offset, limit uint32) ([]models.User, error) {
 	query := "SELECT " + modelFields + " FROM `users` u"
 	where := &QueryStmt{make([]string, 0, 3), make([]interface{}, 0, 3)}
 	if len(match) != 0 {
@@ -78,11 +80,6 @@ func (m *UsersStorage) Fetch(match [][2]string, lastId int64, limit uint32) ([]m
 			where.Params = append(where.Params, match[i][1])
 		}
 	}
-
-	if lastId != 0 {
-		where.Conditions = append(where.Conditions, "u.`id` > ?")
-		where.Params = append(where.Params, lastId)
-	}
 	if len(where.Conditions) > 0 {
 		query += " WHERE " + strings.Join(where.Conditions[:], " AND ")
 	}
@@ -90,7 +87,7 @@ func (m *UsersStorage) Fetch(match [][2]string, lastId int64, limit uint32) ([]m
 	if limit == 0 {
 		limit = 25
 	}
-	query += " LIMIT 0, " + strconv.Itoa(int(limit))
+	query += " LIMIT " + strconv.Itoa(int(offset)) + ", " + strconv.Itoa(int(limit))
 
 	stmt, err := m.db.Prepare(query)
 	defer closeStmt(stmt)
@@ -150,6 +147,13 @@ func (m *UsersStorage) Update(user *models.User, clean *models.User) error {
 	return err
 }
 
+func (m *UsersStorage) PrefixSearch(fnPrefix, lnPrefix string, offset, limit uint32) ([]models.User, error) {
+	return m.Fetch([][2]string{
+		{"`first_name` LIKE (?)", fnPrefix + "%"},
+		{"`last_name` LIKE (?)", lnPrefix + "%"},
+	}, offset, limit)
+}
+
 func populateUserList(rows *sql.Rows, cap uint32) ([]models.User, error) {
 	list := make([]models.User, 0, cap)
 	for rows.Next() {
@@ -182,10 +186,6 @@ func prepareExecStmt(dirty *models.User, clean *models.User) ExecStmt {
 			clean.Username = dirty.Username
 		}
 	}
-	if clean == nil || (dirty.PasswordHash != nil && string(dirty.PasswordHash) != string(clean.PasswordHash)) {
-		stmt.Set = append(stmt.Set, "`password_hash` = ?")
-		stmt.Params = append(stmt.Params, dirty.PasswordHash)
-	}
 	if clean == nil || (dirty.FirstName.Valid && clean.FirstName.String != dirty.FirstName.String) {
 		stmt.Set = append(stmt.Set, "`first_name` = ?")
 		stmt.Params = append(stmt.Params, dirty.FirstName.String)
@@ -200,6 +200,7 @@ func prepareExecStmt(dirty *models.User, clean *models.User) ExecStmt {
 			clean.LastName = dirty.LastName
 		}
 	}
+
 	if clean == nil || (dirty.Age.Valid && clean.Age.Int32 != dirty.Age.Int32) {
 		stmt.Set = append(stmt.Set, "`age` = ?")
 		stmt.Params = append(stmt.Params, dirty.Age.Int32)
@@ -207,6 +208,7 @@ func prepareExecStmt(dirty *models.User, clean *models.User) ExecStmt {
 			clean.Age = dirty.Age
 		}
 	}
+
 	if clean == nil || (dirty.Gender != "" && clean.Gender != dirty.Gender) {
 		stmt.Set = append(stmt.Set, "`gender` = ?")
 		stmt.Params = append(stmt.Params, dirty.Gender)
@@ -214,6 +216,7 @@ func prepareExecStmt(dirty *models.User, clean *models.User) ExecStmt {
 			clean.Gender = dirty.Gender
 		}
 	}
+
 	if clean == nil || (dirty.City.Valid && clean.City.String != dirty.City.String) {
 		stmt.Set = append(stmt.Set, "`city` = ?")
 		stmt.Params = append(stmt.Params, dirty.City.String)
@@ -221,6 +224,17 @@ func prepareExecStmt(dirty *models.User, clean *models.User) ExecStmt {
 			clean.City = dirty.City
 		}
 	}
+
+	if clean == nil || (dirty.PasswordHash != nil && string(dirty.PasswordHash) != string(clean.PasswordHash)) {
+		stmt.Set = append(stmt.Set, "`password_hash` = ?")
+		stmt.Params = append(stmt.Params, dirty.PasswordHash)
+	}
+
+	if clean == nil {
+		stmt.Set = append(stmt.Set, "`created_at` = ?")
+		stmt.Params = append(stmt.Params, dirty.CreatedAt)
+	}
+
 	if clean == nil || (dirty.Interests.Valid && clean.Interests.String != dirty.Interests.String) {
 		stmt.Set = append(stmt.Set, "`interests` = ?")
 		stmt.Params = append(stmt.Params, dirty.Interests.String)
