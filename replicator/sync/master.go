@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/siddontang/go-mysql/mysql"
 )
@@ -19,7 +20,8 @@ type masterInfo struct {
 	Name string
 	Pos  uint32
 
-	filePath string
+	lastSaveTime time.Time
+	filePath     string
 }
 
 func loadMasterInfo(dataDir string) (*masterInfo, error) {
@@ -62,7 +64,7 @@ func loadMasterInfo(dataDir string) (*masterInfo, error) {
 	return &m, nil
 }
 
-func (m *masterInfo) save(pos mysql.Position) error {
+func (m *masterInfo) save(pos mysql.Position, force bool) error {
 	m.Lock()
 	defer m.Unlock()
 
@@ -72,6 +74,13 @@ func (m *masterInfo) save(pos mysql.Position) error {
 	if len(m.filePath) == 0 {
 		return errors.New("file path is empty")
 	}
+
+	n := time.Now()
+	// Do not save the position in the file more than once every 500 ms
+	if !m.lastSaveTime.IsZero() && !force && n.Sub(m.lastSaveTime) < (500*time.Millisecond) {
+		return nil
+	}
+	m.lastSaveTime = n
 
 	return writeMasterFile(m.filePath, []byte(m.Name+"|"+strconv.Itoa(int(m.Pos))), 0644)
 }

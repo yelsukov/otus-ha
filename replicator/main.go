@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/yelsukov/otus-ha/replicator/tarantool"
 	"os"
 	"os/signal"
 	"runtime"
@@ -30,7 +31,12 @@ func main() {
 		log.Fatalf("fail on config reading: %v", err)
 	}
 
-	r, err := sync.NewSync(cfg)
+	tt := &tarantool.Tarantool{}
+	if err = tt.Connect(cfg); err != nil {
+		log.Fatalf("fail on connecting with tarantool: %v", err)
+	}
+
+	r, err := sync.NewSync(cfg, tt)
 	if err != nil {
 		log.Fatalf("fail on river start: %v", err)
 	}
@@ -39,7 +45,7 @@ func main() {
 	done := make(chan struct{}, 1)
 	go func() {
 		log.Info("running replica synchronizer")
-		if err := r.Run(ctx); err != nil {
+		if err := r.Run(ctx, cfg.SyncWorkersCnt); err != nil {
 			log.Errorf("fail on synchronizer run: %v", err)
 			cancel()
 		}
@@ -55,6 +61,9 @@ func main() {
 
 	log.Info("shutting down the replicator...")
 	r.Close()
+	if ctx.Err() != context.Canceled {
+		cancel()
+	}
 	<-done
 	log.Info("replicator has been stopped")
 }

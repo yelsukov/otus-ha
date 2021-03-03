@@ -1,4 +1,4 @@
-package sync
+package tarantool
 
 import (
 	"github.com/siddontang/go-log/log"

@@ -8,6 +8,7 @@ import (
 	"github.com/yelsukov/otus-ha/backend/server/v1/responses"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type UserResponse struct {
@@ -73,11 +74,15 @@ func GetUsers(store PrefixSearcher) http.HandlerFunc {
 			responses.ResponseWithError(w, errors.New("4000", "`firstName` can't be empty"))
 			return
 		}
+		firstName = strings.Title(firstName)
+
 		lastName := r.URL.Query().Get("lastName")
 		if lastName == "" {
 			responses.ResponseWithError(w, errors.New("4000", "`lastName` can't be empty"))
 			return
 		}
+		lastName = strings.Title(lastName)
+
 		users, err := store.PrefixSearch(firstName, lastName, uint32(offset), uint32(limit))
 		if err != nil {
 			responses.ResponseWithError(w, err)

@@ -1,6 +1,8 @@
 box.cfg {
     listen = 3301,
     log_level = 2,
+    net_msg_max = 7680,
+    memtx_memory = 536870912
 }
 
 box.schema.space.create('users', { if_not_exists = true }):format({

@@ -6,6 +6,11 @@ include .env
 
 TYPE?=standalone
 
+SEED_QTY?=1000
+SEED_HOST?=127.0.0.1:3336
+SEED_USER?=root
+SEED_PASS?=rO0t3zRtga
+
 buildBackend: clean
 	cd backend && CGO_ENABLED=${CGO_ENABLED} GOOS=${GOOS} go build -a \
 		-ldflags "-s -w -X main.VERSION=${VERSION}" \
@@ -48,6 +53,5 @@ fmt:
 	@echo "+ $@"
 	@goimports -w -l src
 
-clean:
-	rm -f backend/bin/*
-	rm -f frontend/dist/*
+seed:
+	 cd seeder && go build && ./seeder -dbHost "${SEED_HOST}" -u ${SEED_USER} -p "${SEED_PASS}" -q ${SEED_QTY}

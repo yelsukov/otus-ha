@@ -11,8 +11,7 @@ CREATE TABLE `users`
     `password_hash` varchar(255)     NOT NULL,
     `created_at`    timestamp        NOT NULL DEFAULT current_timestamp(),
     `interests`     varchar(255)              DEFAULT NULL,
-    PRIMARY KEY (`id`),
-    KEY `username` (`username`)
+    PRIMARY KEY (`id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8;
 

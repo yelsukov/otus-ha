@@ -36,6 +36,7 @@ type randomUser struct {
 	Lastname  string
 	Password  string
 	Gender    string
+	Age       int
 }
 
 var password string
@@ -59,6 +60,7 @@ func newRandomUser() randomUser {
 		lastName,
 		password,
 		gender,
+		rand.Intn(99-21) + 21,
 	}
 }
 
@@ -99,10 +101,10 @@ func init() {
 	password = string(pass)
 }
 
-const rowsPerInsert = 1000
+const rowsPerInsert = 5000
 
 func exec(db *sql.DB, placeholders []string, params []interface{}) error {
-	stmt := fmt.Sprintf("INSERT INTO `users` (`username`, `first_name`, `last_name`, `gender`, `password_hash`) VALUES %s",
+	stmt := fmt.Sprintf("INSERT INTO `users` (`username`, `first_name`, `last_name`, `age`, `gender`, `city`, `password_hash`, `created_at`, `interests`) VALUES %s",
 		strings.Join(placeholders, ","))
 	res, err := db.Exec(stmt, params...)
 	if err != nil {
@@ -112,7 +114,6 @@ func exec(db *sql.DB, placeholders []string, params []interface{}) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%d rows where been inserted\n", int(cnt))
 	counter += cnt
 
 	return nil
@@ -120,11 +121,11 @@ func exec(db *sql.DB, placeholders []string, params []interface{}) error {
 
 func insert(db *sql.DB, num int, qty int, wg *sync.WaitGroup) {
 	placeholders := make([]string, 0, rowsPerInsert)
-	params := make([]interface{}, 0, rowsPerInsert*5)
+	params := make([]interface{}, 0, rowsPerInsert*9)
 	for i := 0; i < qty; i++ {
 		u := newRandomUser()
-		placeholders = append(placeholders, "(?, ?, ?, ?, ?)")
-		params = append(params, u.Username, u.Firstname, u.Lastname, u.Gender, u.Password)
+		placeholders = append(placeholders, "(?, ?, ?, ?, ?, ?, ?, NOW(), ?)")
+		params = append(params, u.Username, u.Firstname, u.Lastname, u.Age, u.Gender, "", u.Password, "")
 		if len(placeholders) >= rowsPerInsert {
 			err := exec(db, placeholders, params)
 			if err != nil {
@@ -144,11 +145,12 @@ func insert(db *sql.DB, num int, qty int, wg *sync.WaitGroup) {
 			return
 		}
 	}
-	fmt.Printf("Worker #%d finished job!\n", qty)
+	fmt.Printf("Worker #%d finished job!\n", num)
 	wg.Done()
 }
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	qty := flag.Int("q", 10, "Quantity of users to generate")
 	dbUser := flag.String("u", "root", "username to connect with DB")
