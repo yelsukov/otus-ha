@@ -2,12 +2,14 @@ package mysql
 
 import (
 	"database/sql"
-	"github.com/yelsukov/otus-ha/backend/errors"
-	"github.com/yelsukov/otus-ha/backend/models"
-	"golang.org/x/crypto/bcrypt"
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
+
+	"github.com/yelsukov/otus-ha/backend/errors"
+	"github.com/yelsukov/otus-ha/backend/models"
 )
 
 type UsersStorage struct {

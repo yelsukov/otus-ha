@@ -73,7 +73,7 @@ func main() {
 	if config.TaranDsn != "" {
 		log.Info("connecting with tarantool")
 		if ttConn, err = tarantool.Connect(config.TaranDsn, tarantool.Opts{
-			Timeout:       3 * time.Second,
+			Timeout:       15 * time.Second,
 			Reconnect:     1 * time.Second,
 			MaxReconnects: 5,
 			User:          config.TaranUser,

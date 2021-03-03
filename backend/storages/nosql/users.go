@@ -18,7 +18,6 @@ func NewUsersStorage(db *tarantool.Connection) *UsersStorage {
 }
 
 func (m *UsersStorage) PrefixSearch(fnPrefix, lnPrefix string, offset, limit uint32) ([]models.User, error) {
-	log.Info("req", fnPrefix, lnPrefix, offset, limit)
 	resp, err := m.tt.Call("search", []interface{}{fnPrefix, lnPrefix, offset, limit})
 	if err != nil {
 		return nil, err
@@ -30,7 +29,6 @@ func (m *UsersStorage) PrefixSearch(fnPrefix, lnPrefix string, offset, limit uin
 	}
 
 	users := make([]models.User, len(resp.Data), len(resp.Data))
-	log.Info("res", resp)
 	for i, tuple := range resp.Data {
 		row, ok := tuple.([]interface{})
 		if !ok {

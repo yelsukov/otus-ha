@@ -3,6 +3,7 @@ package conf
 import (
 	"errors"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -29,6 +30,8 @@ type Config struct {
 	MysqlUser     string
 	MysqlPass     string
 	MysqlServerId uint32
+
+	SyncWorkersCnt uint32
 }
 
 func PopulateConfig() (*Config, error) {
@@ -75,6 +78,8 @@ func PopulateConfig() (*Config, error) {
 		}
 		cfg.MysqlServerId = uint32(sid)
 	}
+
+	cfg.SyncWorkersCnt = uint32(runtime.NumCPU() / 2)
 
 	return &cfg, nil
 }
