@@ -17,6 +17,7 @@ func NewCacheHeater(fs storages.FollowerStorage, es storages.EventStorage, cache
 }
 
 func (ch *CacheHeater) HeatFollowers() {
+	log.Info("heating followers cache")
 	ff, err := ch.followers.ReadMany()
 	if err != nil {
 		log.WithError(err).Error("fail to read followers on heating cache")
@@ -28,6 +29,7 @@ func (ch *CacheHeater) HeatFollowers() {
 			log.WithError(err).Errorf("cannot heat cache for %+v", f)
 		}
 	}
+	log.Info("cache heater has been run")
 }
 
 func (ch *CacheHeater) HeatEvents(uid int) {

@@ -2,9 +2,18 @@ package main
 
 import (
 	"context"
+	"github.com/mailru/easygo/netpoll"
+	"github.com/yelsukov/otus-ha/news/bus"
+	"github.com/yelsukov/otus-ha/news/cache"
+	"github.com/yelsukov/otus-ha/news/domain/entities"
+	"github.com/yelsukov/otus-ha/news/gopool"
 	"github.com/yelsukov/otus-ha/news/heater"
+	"github.com/yelsukov/otus-ha/news/processor"
+	"github.com/yelsukov/otus-ha/news/server"
+	"github.com/yelsukov/otus-ha/news/storages"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -13,12 +22,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 
-	"github.com/yelsukov/otus-ha/news/bus"
-	"github.com/yelsukov/otus-ha/news/cache"
-	"github.com/yelsukov/otus-ha/news/domain/entities"
-	"github.com/yelsukov/otus-ha/news/processor"
-	"github.com/yelsukov/otus-ha/news/server"
-	"github.com/yelsukov/otus-ha/news/storages"
 	"github.com/yelsukov/otus-ha/news/vars"
 )
 
@@ -64,13 +67,14 @@ func initLogger(DebugMode bool) {
 }
 
 func main() {
-	if vars.TOKEN == "" {
-		log.Fatal("auth token for interaction with backend service is empty")
-	}
+	//if vars.TOKEN == "" {
+	//	log.Fatal("auth token for interaction with backend service is empty")
+	//}
 
 	cfg, err := PopulateConfig()
 	if err != nil {
-		log.WithError(err).Fatal("failed to populate configuration")
+		log.WithError(err).Error("failed to populate configuration")
+		return
 	}
 
 	initLogger(cfg.DebugMode)
@@ -80,15 +84,12 @@ func main() {
 	log.Info("connecting to db...")
 	conn, err := establishDbConn(ctx, cfg.MongoDSN)
 	if err != nil {
-		log.WithError(err).Fatal("failed to connect to DB")
+		log.WithError(err).Error("failed to connect to DB")
+		return
 	}
 	defer func() {
 		log.Info("disconnecting from the DB...")
-		if err = conn.Disconnect(ctx); err != nil {
-			log.WithError(err).Error("failed to close db connection")
-		} else {
-			log.Info("DB connection has been closed")
-		}
+		_ = conn.Disconnect(ctx)
 	}()
 	log.Info("successfully connected to db")
 
@@ -96,15 +97,12 @@ func main() {
 	cacheClient := cache.NewCache(ctx)
 	err = cacheClient.Connect(cfg.CacheDSN, cfg.CachePassword)
 	if err != nil {
-		log.WithError(err).Fatal("failed to connect to Cache")
+		log.WithError(err).Error("failed to connect to Cache")
+		return
 	}
 	defer func() {
 		log.Info("disconnecting from the cache...")
-		if err = cacheClient.Disconnect(); err != nil {
-			log.WithError(err).Error("failed to disconnect from cache")
-		} else {
-			log.Info("cache connection has been closed")
-		}
+		_ = cacheClient.Disconnect()
 	}()
 	log.Info("successfully connected to cache")
 
@@ -114,23 +112,28 @@ func main() {
 	followerStorage := storages.NewFollowerStorage(ctx, db, cacheClient)
 	eventStorage := storages.NewEventStorage(ctx, db, cacheClient)
 
-	log.Info("running cache heater")
 	cacheHeater := heater.NewCacheHeater(followerStorage, eventStorage, cacheClient)
-	log.Info("heating followers cache")
 	cacheHeater.HeatFollowers()
-	log.Info("cache heater has been run")
 
 	busChan := make(chan *entities.Event, cfg.BusPartitions)
-
-	log.Info("running events bus listener")
 	busListener := bus.NewBusListener(ctx, cfg.BusDSN, cfg.BusTopic, busChan, cfg.BusPartitions)
 	busListener.Listen()
-	log.Info("bus listener has been started")
 
-	log.Info("running processors manager")
-	manager := processor.NewProcessorsManager(ctx, busChan, cacheClient, cacheHeater, followerStorage, eventStorage, cfg.BusPartitions)
+	// Initialize netpoll. Will use it to be noticed about incoming events from connections.
+	poller, err := netpoll.New(nil)
+	if err != nil {
+		log.WithError(err).Error("failed to init poller")
+		return
+	}
+	// Init pool of goroutines
+	pool := gopool.NewPool(runtime.NumCPU(), 128, 1)
+	defer pool.Close()
+	// Create server instance
+	s := server.NewServer(pool, poller, server.FetchEvents(eventStorage))
+
+	// Running manager of events processors
+	manager := processor.NewProcessorsManager(ctx, busChan, s.WriteCh, cacheClient, cacheHeater, followerStorage, eventStorage, cfg.BusPartitions)
 	go manager.StartProcessing()
-	log.Info("processor manager started")
 
 	// Create the interruption channel end lock until it gets interruption signal from OS
 	c := make(chan os.Signal, 1)
@@ -139,12 +142,15 @@ func main() {
 	go func() {
 		sig := <-c
 		log.Infof("received the %+v call, shutting down", sig)
-		cancel()
 		signal.Stop(c)
+
+		s.Shutdown(nil)
 	}()
 
-	log.Info("creating http server and endpoint...")
-	s := server.NewServer(ctx, eventStorage)
-	log.Info("running http server...")
-	s.Serve(cfg.ServerPort)
+	// Lock until server shutdown
+	if err := s.Serve("8082"); err != nil {
+		log.WithError(err).Error("failed to start server")
+	}
+	// cancel the base context
+	cancel()
 }

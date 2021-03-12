@@ -2,33 +2,28 @@ package server
 
 import (
 	"encoding/json"
-	"net/http"
-	"strconv"
+	"io"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/yelsukov/otus-ha/news/domain/entities"
 )
 
-func ResponseWithError(w http.ResponseWriter, e error) {
-	var status int
+func ResponseWithError(w io.Writer, e error) {
 	var code, message string
 	switch e.(type) {
 	case *entities.KernelError:
 		e := e.(*entities.KernelError)
 		code = e.Code
 		message = e.Message
-		status, _ = strconv.Atoi(e.Code[0:3])
 		break
 	default:
-		status = 500
 		code = "5000"
 		message = "Internal Server Error"
 		log.Error("Internal Error: " + e.Error())
 	}
 
-	w.WriteHeader(status)
-	err := json.NewEncoder(w).Encode(map[string]string{
+	p, err := json.Marshal(map[string]string{
 		"object":  "error",
 		"code":    code,
 		"message": message,
@@ -36,10 +31,12 @@ func ResponseWithError(w http.ResponseWriter, e error) {
 	if err != nil {
 		log.WithError(err).Warn("failed to response with Error")
 	}
+	if _, err = w.Write(p); err != nil {
+		log.WithError(err).Warn("failed to write to connection")
+	}
 }
 
-func ResponseWithOk(w http.ResponseWriter, payload interface{}) {
-	w.WriteHeader(http.StatusOK)
+func ResponseWithOk(w io.Writer, payload interface{}) {
 	err := json.NewEncoder(w).Encode(payload)
 	if err != nil {
 		log.WithError(err).Warn("failed to response with OK")
@@ -51,6 +48,6 @@ type ListResponse struct {
 	Data   interface{} `json:"data"`
 }
 
-func ResponseWithList(w http.ResponseWriter, payload interface{}) {
+func ResponseWithList(w io.Writer, payload interface{}) {
 	ResponseWithOk(w, &ListResponse{"list", payload})
 }

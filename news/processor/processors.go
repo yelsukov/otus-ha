@@ -11,7 +11,6 @@ import (
 
 // Custom processor for user login event
 func (pm *ProcessorsManager) processLogin(ctx context.Context, ch chan *entities.Event, n int) {
-	log.Infof("starting processor #%d for `login` event", n)
 	for {
 		select {
 		case <-ctx.Done():
@@ -33,7 +32,6 @@ func (pm *ProcessorsManager) processLogin(ctx context.Context, ch chan *entities
 
 // Custom processor for user logout event
 func (pm *ProcessorsManager) processLogout(ctx context.Context, ch chan *entities.Event, n int) {
-	log.Infof("starting processor #%d for `logout` event", n)
 	for {
 		select {
 		case <-ctx.Done():
@@ -59,7 +57,6 @@ func (pm *ProcessorsManager) processLogout(ctx context.Context, ch chan *entitie
 
 // Custom processor for follower add event
 func (pm *ProcessorsManager) processFollow(ctx context.Context, ch chan *entities.Event, n int) {
-	log.Infof("starting processor #%d for `follow` event", n)
 	for {
 		select {
 		case <-ctx.Done():
@@ -80,7 +77,6 @@ func (pm *ProcessorsManager) processFollow(ctx context.Context, ch chan *entitie
 			}
 
 			// Add follower to cache
-			log.Debug("adding new follower to cache")
 			go func() {
 				if err = pm.cache.AddFollowers(event.SubjectId, event.ObjectId); err != nil {
 					log.WithError(err).Error("fail on adding follower to cache")
@@ -92,8 +88,6 @@ func (pm *ProcessorsManager) processFollow(ctx context.Context, ch chan *entitie
 
 // Common events processor. Stores events at persistent db and at cache
 func (pm *ProcessorsManager) storeEvents(event *entities.Event) error {
-	log.Debug("storing `" + event.Name + "` event into db")
-
 	// Read followers of event producer
 	ff, err := pm.followerStorage.ReadOne(event.ObjectId)
 	if err != nil {
@@ -117,8 +111,10 @@ func (pm *ProcessorsManager) storeEvents(event *entities.Event) error {
 		return err
 	}
 
-	log.Debugf("adding `%s` event to all followers of user #%d", event.Name, event.ObjectId)
 	// Add event to cache of followers
 	go pm.cache.AddEventToFollowers(&doc, ff.List...)
+
+	pm.srvWriteCh <- &doc
+
 	return nil
 }

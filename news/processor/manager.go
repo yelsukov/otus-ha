@@ -6,12 +6,14 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/yelsukov/otus-ha/news/domain/entities"
+	"github.com/yelsukov/otus-ha/news/domain/models"
 	. "github.com/yelsukov/otus-ha/news/domain/storages"
 )
 
 type ProcessorsManager struct {
 	ctx             context.Context
 	BusChan         chan *entities.Event
+	srvWriteCh      chan *models.Event
 	cache           entities.Cache
 	heater          entities.CacheHeater
 	followerStorage FollowerStorage
@@ -19,11 +21,13 @@ type ProcessorsManager struct {
 	procQty         int
 }
 
-func NewProcessorsManager(ctx context.Context, bus chan *entities.Event, cache entities.Cache, heater entities.CacheHeater, fs FollowerStorage, es EventStorage, procQty int) *ProcessorsManager {
-	return &ProcessorsManager{ctx, bus, cache, heater, fs, es, procQty}
+func NewProcessorsManager(ctx context.Context, bus chan *entities.Event, write chan *models.Event, cache entities.Cache, heater entities.CacheHeater, fs FollowerStorage, es EventStorage, procQty int) *ProcessorsManager {
+	return &ProcessorsManager{ctx, bus, write, cache, heater, fs, es, procQty}
 }
 
 func (pm *ProcessorsManager) StartProcessing() {
+	log.Info("running processors manager")
+
 	logInChan := make(chan *entities.Event, pm.procQty)
 	logOutChan := make(chan *entities.Event, pm.procQty)
 	followChan := make(chan *entities.Event, pm.procQty)
@@ -41,6 +45,7 @@ func (pm *ProcessorsManager) StartProcessing() {
 		go pm.processLogin(pm.ctx, logInChan, i)
 		go pm.processLogout(pm.ctx, logOutChan, i)
 	}
+	log.Info("processor manager started")
 
 	for {
 		select {

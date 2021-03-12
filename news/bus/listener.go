@@ -29,13 +29,11 @@ func (l *Listener) runEventsConsumer(group string, i int) {
 		Brokers: l.brokers,
 		Topic:   l.topic,
 		GroupID: group,
-		Logger:  log.WithContext(l.ctx),
+		//Logger:  log.WithContext(l.ctx),
 	})
 	defer func() {
 		log.Infof("closing consumer #%d for `%s`...\n", i, group)
-		if err := r.Close(); err == nil {
-			log.WithError(err).Error("cannot close kafka conn")
-		}
+		_ = r.Close()
 	}()
 
 	for {
@@ -46,11 +44,16 @@ func (l *Listener) runEventsConsumer(group string, i int) {
 		default:
 			msg, err := r.ReadMessage(l.ctx)
 			if err != nil {
-				log.WithError(err).Error("could not read message")
+				log.WithError(err).Error("could not read message. stopping bus listener")
+				return
 			}
 			event, err := parseMessage(msg.Value)
 			if err != nil {
 				log.WithError(err).Error("could not parse message: ", string(msg.Value))
+				continue
+			}
+			if event == nil {
+				continue
 			}
 			l.busChan <- event
 		}
@@ -58,11 +61,11 @@ func (l *Listener) runEventsConsumer(group string, i int) {
 }
 
 func (l *Listener) Listen() {
-	log.Info("initiating consumers...")
+	log.Info("running events bus listener")
 	for i := 0; i < l.consumersQty; i++ {
 		go l.runEventsConsumer("event.listeners", i)
 	}
-	log.Info("listening for events")
+	log.Info("bus listener has been started")
 }
 
 func parseMessage(msg []byte) (*entities.Event, error) {
