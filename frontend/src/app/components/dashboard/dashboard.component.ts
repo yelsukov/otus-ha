@@ -1,4 +1,4 @@
-import {Component, OnInit} from '@angular/core';
+import {Component, OnDestroy, OnInit} from '@angular/core';
 
 import {User} from '@models/user';
 import {UserService} from '@services/user.service';
@@ -7,7 +7,7 @@ import {Event} from '@models/event';
 import {NewsService} from '@services/news.service';
 
 @Component({templateUrl: 'dashboard.component.html'})
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
     loading = false;
     loadingNews = false;
     users: User[];
@@ -17,15 +17,36 @@ export class DashboardComponent implements OnInit {
     }
 
     ngOnInit() {
+        const that = this;
+
         this.loading = true;
         this.userService.getAll().subscribe(r => {
-            this.loading = false;
-            this.users = r.data;
+            that.loading = false;
+            that.users = r.data;
         });
-        this.loadingNews = true;
-        this.newsService.getAll().subscribe(r => {
-            this.loadingNews = false;
-            this.news = r.data;
+
+        if (!this.newsService.isConnected()) {
+            that.loadingNews = true;
+        }
+        this.newsService.connect().subscribe({
+            next: (r) => {
+                that.loadingNews = false;
+                switch (r.object) {
+                    case 'list':
+                        that.news = r.data;
+                        break;
+                    case 'event':
+                        that.news.unshift(r);
+                        break;
+                    case 'error':
+                        console.log(r.code + ': ' + r.message);
+                }
+            },
+            error: e => console.log(e),
         });
+    }
+
+    ngOnDestroy() {
+        this.newsService.close();
     }
 }

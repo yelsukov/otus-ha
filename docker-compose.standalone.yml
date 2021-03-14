@@ -38,7 +38,7 @@ services:
       BUS_TOPIC: "${BUS_TOPIC}"
       DEBUG: "${DEBUG}"
       NEWS_TOKEN: "${NEWS_TOKEN}"
-      NEWS_URL: "http://news:${NEWS_PORT}"
+      NEWS_URL: "news:${NEWS_PORT}"
     depends_on:
       mysqldb:
         condition: service_healthy

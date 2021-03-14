@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net"
 	"strconv"
 	"sync"
@@ -18,23 +19,28 @@ import (
 )
 
 type Server struct {
-	pool      entities.Pool
-	poller    netpoll.Poller
-	ns        map[string]*connection
-	exitCh    chan error
-	WriteCh   chan *models.Event
-	mu        sync.RWMutex
-	wsHandler WsHandlerFunc
+	pool    entities.Pool
+	poller  netpoll.Poller
+	ns      map[string]*connection
+	exitCh  chan error
+	WriteCh chan *models.Event
+	mu      sync.RWMutex
+	mux     Mux
 }
 
-func NewServer(pool entities.Pool, poller netpoll.Poller, handler WsHandlerFunc) *Server {
+type Mux struct {
+	OnConnect  func(w io.Writer, cid string)
+	OnReadData func(w io.Writer, r io.Reader, cid string)
+}
+
+func NewServer(pool entities.Pool, poller netpoll.Poller, mux Mux) *Server {
 	return &Server{
-		pool:      pool,
-		poller:    poller,
-		ns:        make(map[string]*connection),
-		exitCh:    make(chan error),
-		WriteCh:   make(chan *models.Event, 1),
-		wsHandler: handler,
+		pool:    pool,
+		poller:  poller,
+		ns:      make(map[string]*connection),
+		exitCh:  make(chan error),
+		WriteCh: make(chan *models.Event, 1),
+		mux:     mux,
 	}
 }
 
@@ -73,6 +79,8 @@ func (s *Server) Serve(port string) error {
 		return err
 	}
 
+	go s.writer()
+
 	err = <-s.exitCh
 	log.Info("server exited")
 	return err
@@ -92,7 +100,7 @@ func (s *Server) registerConnection(cid string, conn net.Conn) {
 	desc := netpoll.Must(netpoll.HandleRead(conn))
 
 	// Subscribe to events about conn.
-	if err := s.poller.Start(desc, s.onReadData(cid)); err != nil {
+	if err := s.poller.Start(desc, s.receiveData(cid)); err != nil {
 		log.WithError(err).Error("failed to subscribe connection")
 		_ = conn.Close()
 		return
@@ -102,12 +110,16 @@ func (s *Server) registerConnection(cid string, conn net.Conn) {
 	s.ns[cid] = &connection{cid, conn, desc, 1 * time.Second}
 	s.mu.Unlock()
 
+	if s.mux.OnConnect != nil {
+		s.mux.OnConnect(s.ns[cid], cid)
+	}
+
 	log.Infof("%s: has been registered", conn.LocalAddr().String()+" > "+conn.RemoteAddr().String())
 }
 
 // Removes connection by id
 func (s *Server) removeConnection(cid string) {
-	log.Info("Removing connection")
+	log.Infof("Removing connection #%s", cid)
 
 	conn, has := s.ns[cid]
 	if !has {
@@ -128,12 +140,15 @@ func (s *Server) removeConnection(cid string) {
 	}
 }
 
-func (s *Server) onReadData(cid string) func(ev netpoll.Event) {
+func (s *Server) receiveData(cid string) func(ev netpoll.Event) {
 	return func(ev netpoll.Event) {
-		log.Info("Get read event")
 		// Client has closed connection. Stop poller and disconnect
 		if ev&(netpoll.EventReadHup|netpoll.EventHup) != 0 {
 			s.removeConnection(cid)
+			return
+		}
+		if s.mux.OnReadData == nil {
+			// have no handler for inbound messages
 			return
 		}
 
@@ -144,14 +159,12 @@ func (s *Server) onReadData(cid string) func(ev netpoll.Event) {
 		}
 		// try to read data from connection
 		s.pool.Schedule(func() {
-			log.Info("try to receive data")
 			r, err := conn.Receive()
 			if err != nil {
 				s.removeConnection(cid)
 				return
 			}
-			s.wsHandler(conn, r, cid)
-			log.Info("data received")
+			s.mux.OnReadData(conn, r, cid)
 		})
 	}
 }
@@ -181,24 +194,17 @@ func (s *Server) writer() {
 }
 
 func establishWs(conn net.Conn) (string, error) {
-	var uid string
+	var cid string
 	var authorized bool
 
 	// Zero-copy upgrade to WebSocket connection.
 	upgrader := ws.Upgrader{
 		OnHeader: func(key, value []byte) error {
 			switch string(key) {
-			case "X-Uid":
-				uid = string(value) // todo to int
+			case "X-Cid":
+				cid = string(value) // todo to int
 			case "Authorization":
 				token := string(value)
-				if token == "" {
-					return ws.RejectConnectionError(
-						ws.RejectionReason("an authorization header is required"),
-						ws.RejectionStatus(401),
-					)
-				}
-
 				if token != vars.TOKEN {
 					return ws.RejectConnectionError(
 						ws.RejectionReason("invalid authorization token"),
@@ -212,9 +218,9 @@ func establishWs(conn net.Conn) (string, error) {
 			return nil
 		},
 		OnBeforeUpgrade: func() (header ws.HandshakeHeader, err error) {
-			if uid == "" {
+			if cid == "" {
 				err = ws.RejectConnectionError(
-					ws.RejectionReason("Missed `x-uid` header"),
+					ws.RejectionReason("Missed `x-cid` header"),
 					ws.RejectionStatus(400),
 				)
 			}
@@ -230,11 +236,9 @@ func establishWs(conn net.Conn) (string, error) {
 	if _, err := upgrader.Upgrade(conn); err != nil {
 		return "", err
 	}
-	if uid == "" {
+	if cid == "" {
 		return "", errors.New("uid not found in headers")
-	} else {
-		log.Infof("uid: %s", uid)
 	}
 
-	return uid, nil
+	return cid, nil
 }

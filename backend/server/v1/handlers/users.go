@@ -59,7 +59,7 @@ type PrefixSearcher interface {
 	PrefixSearch(fnPrefix, lnPrefix string, offset, limit uint32) ([]models.User, error)
 }
 
-func GetUsers(store PrefixSearcher) http.HandlerFunc {
+func SearchUsers(store PrefixSearcher) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var offset, limit int
 		if strOffset := r.URL.Query().Get("offset"); strOffset != "" {
@@ -84,6 +84,36 @@ func GetUsers(store PrefixSearcher) http.HandlerFunc {
 		lastName = strings.Title(lastName)
 
 		users, err := store.PrefixSearch(firstName, lastName, uint32(offset), uint32(limit))
+		if err != nil {
+			responses.ResponseWithError(w, err)
+			return
+		}
+
+		responses.ResponseWithOk(w, NewUsersListResponse(users))
+	}
+}
+
+func GetUsers(store userCruder) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var offset, limit int
+		if strOffset := r.URL.Query().Get("offset"); strOffset != "" {
+			offset, _ = strconv.Atoi(strOffset)
+		}
+		if strLimit := r.URL.Query().Get("limit"); strLimit != "" {
+			limit, _ = strconv.Atoi(strLimit)
+		}
+
+		match := make([][2]string, 0, 2)
+		firstName := r.URL.Query().Get("firstName")
+		if firstName != "" {
+			match = append(match, [2]string{"`first_name` LIKE (?)", firstName + "%"})
+		}
+		lastName := r.URL.Query().Get("lastName")
+		if lastName != "" {
+			match = append(match, [2]string{"`last_name` LIKE (?)", lastName + "%"})
+		}
+
+		users, err := store.Fetch(match, uint32(offset), uint32(limit))
 		if err != nil {
 			responses.ResponseWithError(w, err)
 			return

@@ -71,7 +71,6 @@ func (p *Pool) schedule(job func(), timeout <-chan time.Time) error {
 func (p *Pool) worker() {
 	defer func() {
 		<-p.sem
-		log.Info("Pool worker has been closed")
 	}()
 
 	for job := range p.jobs {

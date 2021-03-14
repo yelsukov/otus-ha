@@ -2,15 +2,6 @@ package main
 
 import (
 	"context"
-	"github.com/mailru/easygo/netpoll"
-	"github.com/yelsukov/otus-ha/news/bus"
-	"github.com/yelsukov/otus-ha/news/cache"
-	"github.com/yelsukov/otus-ha/news/domain/entities"
-	"github.com/yelsukov/otus-ha/news/gopool"
-	"github.com/yelsukov/otus-ha/news/heater"
-	"github.com/yelsukov/otus-ha/news/processor"
-	"github.com/yelsukov/otus-ha/news/server"
-	"github.com/yelsukov/otus-ha/news/storages"
 	"os"
 	"os/signal"
 	"runtime"
@@ -22,6 +13,16 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 
+	"github.com/mailru/easygo/netpoll"
+	"github.com/yelsukov/otus-ha/news/bus"
+	"github.com/yelsukov/otus-ha/news/cache"
+	"github.com/yelsukov/otus-ha/news/domain/entities"
+	"github.com/yelsukov/otus-ha/news/gopool"
+	"github.com/yelsukov/otus-ha/news/heater"
+	"github.com/yelsukov/otus-ha/news/processor"
+	"github.com/yelsukov/otus-ha/news/server"
+	"github.com/yelsukov/otus-ha/news/server/handlers"
+	"github.com/yelsukov/otus-ha/news/storages"
 	"github.com/yelsukov/otus-ha/news/vars"
 )
 
@@ -67,9 +68,9 @@ func initLogger(DebugMode bool) {
 }
 
 func main() {
-	//if vars.TOKEN == "" {
-	//	log.Fatal("auth token for interaction with backend service is empty")
-	//}
+	if vars.TOKEN == "" {
+		log.Fatal("auth token for interaction with backend service is empty")
+	}
 
 	cfg, err := PopulateConfig()
 	if err != nil {
@@ -129,7 +130,11 @@ func main() {
 	pool := gopool.NewPool(runtime.NumCPU(), 128, 1)
 	defer pool.Close()
 	// Create server instance
-	s := server.NewServer(pool, poller, server.FetchEvents(eventStorage))
+	mux := server.Mux{
+		OnConnect:  handlers.OnNewConnect(eventStorage),
+		OnReadData: handlers.OnRequest(eventStorage),
+	}
+	s := server.NewServer(pool, poller, mux)
 
 	// Running manager of events processors
 	manager := processor.NewProcessorsManager(ctx, busChan, s.WriteCh, cacheClient, cacheHeater, followerStorage, eventStorage, cfg.BusPartitions)

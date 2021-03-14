@@ -1,4 +1,4 @@
-package server
+package handlers
 
 import (
 	"bytes"
@@ -11,8 +11,6 @@ import (
 	"github.com/yelsukov/otus-ha/news/domain/storages"
 )
 
-type WsHandlerFunc func(w io.Writer, r io.Reader, cid string)
-
 func prepareEventsList(messages []*models.Event) *[]entities.EventResponse {
 	qty := len(messages)
 	list := make([]entities.EventResponse, qty, qty)
@@ -22,10 +20,30 @@ func prepareEventsList(messages []*models.Event) *[]entities.EventResponse {
 	return &list
 }
 
-func FetchEvents(es storages.EventStorage) WsHandlerFunc {
+// OnNewConnect handle new connection event
+func OnNewConnect(es storages.EventStorage) func(w io.Writer, cid string) {
+	return func(w io.Writer, cid string) {
+		uid, err := strconv.Atoi(cid)
+		if err != nil {
+			ResponseWithError(w, entities.NewError("5000", "invalid connection id"))
+			return
+		}
+
+		events, err := es.ReadMany(uid)
+		if err != nil {
+			ResponseWithError(w, err)
+			return
+		}
+
+		ResponseWithList(w, prepareEventsList(events))
+	}
+}
+
+// OnRequest handle inbound requests
+func OnRequest(es storages.EventStorage) func(w io.Writer, r io.Reader, cid string) {
 	return func(w io.Writer, r io.Reader, cid string) {
 		buf, _ := ioutil.ReadAll(r)
-		act := string(bytes.TrimRight(buf, "\n"))
+		act := string(bytes.Trim(buf, "\n\""))
 		if act != "list" {
 			ResponseWithError(w, entities.NewError("4000", "unknown action"))
 			return

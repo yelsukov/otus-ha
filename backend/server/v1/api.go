@@ -14,7 +14,6 @@ import (
 	"github.com/yelsukov/otus-ha/backend/conf"
 	"github.com/yelsukov/otus-ha/backend/errors"
 	"github.com/yelsukov/otus-ha/backend/jwt"
-	"github.com/yelsukov/otus-ha/backend/providers/news"
 	"github.com/yelsukov/otus-ha/backend/server/v1/handlers"
 	"github.com/yelsukov/otus-ha/backend/server/v1/responses"
 	"github.com/yelsukov/otus-ha/backend/storages/mysql"
@@ -45,7 +44,8 @@ func InitApiMux(db *sql.DB, tdb *tarantool.Connection, bus *bus.Producer, cfg *c
 	friendsStore := mysql.NewFriendsStorage(db)
 	router.Route("/users", func(r chi.Router) {
 		r.Use(authenticationMiddleware(authorizer))
-		r.Get("/", handlers.GetUsers(prefixSearcher))
+		r.Get("/", handlers.GetUsers(userStore))
+		r.Get("/search", handlers.SearchUsers(prefixSearcher))
 		r.Get("/{id:[0-9]+}", handlers.GetUser(userStore, friendsStore))
 		r.Get("/me", handlers.GetMe(userStore))
 		r.Put("/me", handlers.UpdateMe(userStore))
@@ -58,10 +58,9 @@ func InitApiMux(db *sql.DB, tdb *tarantool.Connection, bus *bus.Producer, cfg *c
 		r.Delete("/{friend_id:[0-9]+}", handlers.DeleteFriend(friendsStore, userStore, bus))
 	})
 
-	newsProvider := news.NewNewsService(cfg.NewsServiceToken, cfg.NewsServiceUrl)
 	router.Route("/news", func(r chi.Router) {
-		r.Use(authenticationMiddleware(authorizer))
-		r.Get("/", handlers.GetNews(newsProvider))
+		r.Use(authParamMiddleware(authorizer))
+		r.HandleFunc("/", handlers.GetNews(cfg.NewsServiceUrl, cfg.NewsServiceToken))
 	})
 
 	router.Post("/auth/sign-in", handlers.LoginHandler(userStore, authorizer, bus))
@@ -94,6 +93,28 @@ func authenticationMiddleware(jwt jwt.Tokenizer) func(next http.Handler) http.Ha
 			}
 
 			uid, err := jwt.ExtractUserId(tkn[1])
+			if err != nil {
+				responses.ResponseWithError(w, errors.New("4011", "invalid authorization token"))
+				return
+			}
+
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), "currentUserId", uid)))
+		})
+	}
+}
+
+// authParamMiddleware middleware to authenticate client by token from GET params
+// used for ws connection coz rxjs websockets lib doesn't allow headers
+func authParamMiddleware(jwt jwt.Tokenizer) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			token := r.URL.Query().Get("token")
+			if token == "" {
+				responses.ResponseWithError(w, errors.New("4010", "an authorization header is required"))
+				return
+			}
+
+			uid, err := jwt.ExtractUserId(token)
 			if err != nil {
 				responses.ResponseWithError(w, errors.New("4011", "invalid authorization token"))
 				return
