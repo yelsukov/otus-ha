@@ -9,7 +9,7 @@ import (
 type Chat struct {
 	Id        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	Users     []int              `bson:"users" json:"users"`
-	CreatedAt int64              `bson:"ts" json:"created_at"`
+	CreatedAt int64              `bson:"ts" json:"createdAt"`
 }
 
 func (c *Chat) Validate() error {

@@ -7,9 +7,9 @@ import (
 
 type Message struct {
 	Id        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	ChatId    primitive.ObjectID `bson:"cid" json:"chat_id"`
-	UserId    int                `bson:"aid" json:"user_id"`
-	CreatedAt int64              `bson:"ts" json:"created_at"`
+	ChatId    primitive.ObjectID `bson:"cid" json:"cid"`
+	UserId    int                `bson:"aid" json:"uid"`
+	CreatedAt int64              `bson:"ts" json:"createdAt"`
 	Text      string             `bson:"txt" json:"text"`
 }
 

@@ -1,0 +1,577 @@
+openapi: 3.0.3
+info:
+  title: API of Dialogue Service
+  version: 1.0.0
+
+servers:
+  - url: http://127.0.0.1:8009
+    variables:
+      port:
+        default: '8009'
+      basePath:
+        default: v1
+
+paths:
+
+  /chats:
+    post:
+      operationId: createChat
+      tags:
+        - Chats
+      description: Creates new chat.
+      summary: Creates new chat.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                users:
+                  type: array
+                  items:
+                    type: integer
+                  description: List of users IDs.
+                  example: [ 2, 4 ]
+      responses:
+        200:
+          description: Request was successful
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        500:
+          $ref: '#/components/responses/ServerError'
+      security:
+        - ApiKeyAuth: [ ]
+    get:
+      operationId: chatsList
+      tags:
+        - Chats
+      summary: Get chats list.
+      description: Get chats list.
+      parameters:
+        - in: query
+          name: uid
+          required: true
+          schema:
+            type: integer
+          description: The user ID
+        - in: query
+          name: cursor
+          schema:
+            type: string
+          description: id of last chat item
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+      responses:
+        200:
+          description: Ok
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatsList'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+
+        500:
+          $ref: '#/components/responses/ServerError'
+      security:
+        - ApiKeyAuth: [ ]
+
+  /chats/{cid}:
+    get:
+      operationId: getChat
+      tags:
+        - Chats
+      summary: Retrieving chat.
+      description: Retrieving chat.
+      parameters:
+        - in: path
+          name: cid
+          required: true
+          schema:
+            type: string
+          description: The chat ID
+        - in: query
+          name: uid
+          required: true
+          schema:
+            type: string
+          description: The user ID
+        - in: query
+          name: cursor
+          schema:
+            type: string
+          description: id of last chat item
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+      responses:
+        200:
+          description: Ok
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/ServerError'
+      security:
+        - ApiKeyAuth: [ ]
+    put:
+      operationId: updateChat
+      tags:
+        - Chats
+      description: Updates list of users in chat.
+      summary: Updates list of users in chat.
+      parameters:
+        - in: path
+          name: cid
+          required: true
+          schema:
+            type: string
+          description: The chat ID
+        - in: query
+          name: uid
+          required: true
+          schema:
+            type: string
+          description: The user ID
+        - in: query
+          name: cursor
+          schema:
+            type: string
+          description: id of last chat item
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                users:
+                  type: array
+                  items:
+                    type: integer
+                  description: List of users IDs.
+                  example: [ 2, 4 ]
+      responses:
+        200:
+          description: Request was successful
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/ServerError'
+      security:
+        - ApiKeyAuth: [ ]
+
+  /messages:
+    get:
+      operationId: getChatMessages
+      tags:
+        - Messages
+      summary: Retrieving chat messages.
+      description: Retrieving chat messages.
+      parameters:
+        - in: query
+          name: cid
+          required: true
+          schema:
+            type: string
+          description: The chat ID
+        - in: query
+          name: uid
+          required: true
+          schema:
+            type: string
+          description: The user ID
+        - in: query
+          name: cursor
+          schema:
+            type: string
+          description: id of last message item
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+      responses:
+        200:
+          description: Ok
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessagesList'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/ServerError'
+      security:
+        - ApiKeyAuth: [ ]
+    post:
+      operationId: createChatMessage
+      tags:
+        - Messages
+      description: Sends message to chat.
+      summary: Sends message to chat.
+      parameters:
+        - in: query
+          name: cid
+          required: true
+          schema:
+            type: string
+          description: The chat ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Message'
+      responses:
+        200:
+          description: Request was successful
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/ServerError'
+      security:
+        - ApiKeyAuth: [ ]
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authroization
+
+  responses:
+    BadRequest:
+      description: The specified resource was not found
+      headers:
+        X-Api-Version:
+          schema:
+            type: string
+            description: 'Current API version'
+            example: 1.0.0
+        X-Request-Id:
+          schema:
+            type: number
+            description: 'Unique ID of request. Use it for contact with support'
+            example: 7501512079143029
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              object:
+                type: string
+                example: error
+              code:
+                type: number
+                enum: [ 4000, 4001, 4002, 4003, 4004 ]
+              message:
+                type: string
+                example: Content-Type should be application/json
+
+    Unauthorized:
+      description: Unauthorized
+      headers:
+        X-Api-Version:
+          schema:
+            type: string
+            description: 'Current API version'
+            example: 1.0.0
+        X-Request-Id:
+          schema:
+            type: number
+            description: 'Unique ID of request. Use it for contact with support'
+            example: 7501512079143029
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              object:
+                type: string
+                example: error
+              code:
+                type: number
+                enum: [ 4010, 4011 ]
+              message:
+                type: string
+                example: Unauthorized
+
+    Forbidden:
+      description: Forbidden
+      headers:
+        X-Api-Version:
+          schema:
+            type: string
+            description: 'Current API version'
+            example: 1.0.0
+        X-Request-Id:
+          schema:
+            type: number
+            description: 'Unique ID of request. Use it for contact with support'
+            example: 7501512079143029
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              object:
+                type: string
+                example: error
+              code:
+                type: number
+                enum: [ 4030, 4031, 4032 ]
+              message:
+                type: string
+                example: Forbidden
+
+    NotFound:
+      description: Not Found
+      headers:
+        X-Api-Version:
+          schema:
+            type: string
+            description: 'Current API version'
+            example: 1.0.0
+        X-Request-Id:
+          schema:
+            type: number
+            description: 'Unique ID of request. Use it for contact with support'
+            example: 7501512079143029
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              object:
+                type: string
+                example: error
+              code:
+                type: number
+                enum: [ 4040, 4041, 4042 ]
+              message:
+                type: string
+                example: Resource Not Found
+
+    ServerError:
+      description: Server Errors
+      headers:
+        X-Api-Version:
+          schema:
+            type: string
+            description: 'Current API version'
+            example: 1.0.0
+        X-Request-Id:
+          schema:
+            type: number
+            description: 'Unique ID of request. Use it for contact with support'
+            example: 7501512079143029
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              object:
+                type: string
+                example: error
+              code:
+                type: number
+                example: 5000
+              message:
+                type: string
+                example: Service temporary unavailable. Please try later.
+
+  schemas:
+    Chat:
+      type: object
+      properties:
+        object:
+          type: string
+          description: Model name.
+          example: 'chat'
+        id:
+          type: string
+          description: chat id.
+          example: '604f565622f02d3663a43d3b'
+        users:
+          type: array
+          items:
+            type: integer
+          description: id of participants
+          example: [ 1,2 ]
+        createdAt:
+          type: integer
+          example: 1615812299,
+          description: UTC timestamp.
+
+    ChatsList:
+      type: object
+      properties:
+        object:
+          type: string
+          description: Model name.
+          example: 'list'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Chat'
+
+    Message:
+      type: object
+      properties:
+        object:
+          type: string
+          description: Model name.
+          example: 'message'
+        id:
+          type: string
+          description: message id.
+          example: '604f56cb22f02d3663a43d3c'
+        cid:
+          type: string
+          description: chat id.
+          example: '604f565622f02d3663a43d3b'
+        uid:
+          type: integer
+          description: id of author.
+          example: 1
+        createdAt:
+          type: integer
+          example: 1615812299
+          description: UTC timestamp.
+        text:
+          type: string
+          description: message text.
+          example: 'Hi there!'
+
+    MessagesList:
+      type: object
+      properties:
+        object:
+          type: string
+          description: Model name.
+          example: 'list'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'

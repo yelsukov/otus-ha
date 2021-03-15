@@ -21,7 +21,7 @@ type Token struct {
 	Token     string `json:"token"`
 	UserId    int64  `json:"userId"`
 	Username  string `json:"username"`
-	ExpiresAt int64  `json:"expires_at"`
+	ExpiresAt int64  `json:"expiresAt"`
 }
 
 type claims struct {

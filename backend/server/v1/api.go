@@ -32,7 +32,7 @@ func InitApiMux(db *sql.DB, tdb *tarantool.Connection, bus *bus.Producer, cfg *c
 		middleware.Logger,
 		middleware.Compress(3, "application/json"),
 		middleware.SetHeader("Content-Type", "application/json"),
-		middleware.SetHeader("Version", version),
+		middleware.SetHeader("X-Api-Version", version),
 	)
 
 	var prefixSearcher handlers.PrefixSearcher

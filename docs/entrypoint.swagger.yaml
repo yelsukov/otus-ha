@@ -1,0 +1,1100 @@
+openapi: 3.0.3
+info:
+  title: Entrypoint API Gateway
+  version: 1.0.0
+
+servers:
+  - url: http://127.0.0.1
+    variables:
+      port:
+        default: '8007'
+      basePath:
+        default: v1
+
+paths:
+
+  /auth/sign-in:
+    post:
+      operationId: authSignIn
+      tags:
+        - Authorization
+      description: Sign in user by credentials.
+      summary: Sign in user by credentials.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignInRequest'
+      responses:
+        200:
+          description: Request was successful
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Token'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/sign-up:
+    post:
+      operationId: authSignUp
+      tags:
+        - Authorization
+      description: Sign up user by credentials.
+      summary: Registration of new user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignUpRequest'
+      responses:
+        200:
+          description: Request was successful
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Token'
+        400:
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/sign-out:
+    post:
+      operationId: authSignOut
+      tags:
+        - Authorization
+      description: Logout current user.
+      summary: Sends logout event to the core.
+      responses:
+        200:
+          description: Request was successful
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+
+  /users:
+    get:
+      operationId: usersList
+      tags:
+        - Users
+      summary: Retrieving user's list.
+      description: Retrieving users list.
+      parameters:
+        - in: query
+          name: offset
+          schema:
+            type: integer
+          description: The number of items to skip before starting to collect the result set
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+      responses:
+        200:
+          description: Ok
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersList'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        500:
+          $ref: '#/components/responses/ServerError'
+      security:
+        - ApiKeyAuth: [ ]
+
+  /users/search:
+    get:
+      operationId: searchUsers
+      tags:
+        - Users
+      summary: Retrieving user's list.
+      description: Retrieving users list.
+      parameters:
+        - in: query
+          name: firstName
+          schema:
+            type: string
+          description: prefix of first name to search
+        - in: query
+          name: lasttName
+          schema:
+            type: string
+          description: prefix of last name to search
+        - in: query
+          name: offset
+          schema:
+            type: integer
+          description: The number of items to skip before starting to collect the result set
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+      responses:
+        200:
+          description: Ok
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersList'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        500:
+          $ref: '#/components/responses/ServerError'
+      security:
+        - ApiKeyAuth: [ ]
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags:
+        - Users
+      summary: Retrieving user.
+      description: Retrieving user.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: The user ID
+      responses:
+        200:
+          description: Ok
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/ServerError'
+      security:
+        - ApiKeyAuth: [ ]
+
+  /users/me:
+    get:
+      operationId: getMe
+      tags:
+        - Users
+      summary: Retrieving own profile.
+      description: Retrieving own profile.
+      responses:
+        200:
+          description: Ok
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        500:
+          $ref: '#/components/responses/ServerError'
+      security:
+        - ApiKeyAuth: [ ]
+    put:
+      operationId: usersUpdateProfile
+      tags:
+        - Users
+      summary: Update owsn profile.
+      description: Update owsn profile.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        200:
+          description: Ok
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersList'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        500:
+          $ref: '#/components/responses/ServerError'
+      security:
+        - ApiKeyAuth: [ ]
+
+  /friends:
+    get:
+      operationId: friendsList
+      tags:
+        - Friends
+      summary: Get friends list.
+      description: Get friends list.
+      parameters:
+        - in: query
+          name: offset
+          schema:
+            type: integer
+          description: The number of items to skip before starting to collect the result set
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+      responses:
+        200:
+          description: Ok
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersList'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        500:
+          $ref: '#/components/responses/ServerError'
+      security:
+        - ApiKeyAuth: [ ]
+
+  /friends/{friend_id}:
+    delete:
+      operationId: unsubscribe
+      tags:
+        - Friends
+      description: Unsubscribe from user's events.
+      summary: Unsubscribe from user's events.
+      parameters:
+        - in: path
+          name: friend_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Request was successful
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/ServerError'
+    post:
+      operationId: subscribe
+      tags:
+        - Friends
+      description: Subscribe to user's events.
+      summary: Subscribe to user's events.
+      parameters:
+        - in: path
+          name: friend_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Request was successful
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/ServerError'
+
+  /chats:
+    post:
+      operationId: createChat
+      tags:
+        - Chats
+      description: Creates new chat.
+      summary: Creates new chat.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                users:
+                  type: array
+                  items:
+                    type: integer
+                  description: List of users IDs.
+                  example: [ 2, 4 ]
+      responses:
+        200:
+          description: Request was successful
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        500:
+          $ref: '#/components/responses/ServerError'
+      security:
+        - ApiKeyAuth: [ ]
+    get:
+      operationId: chatsList
+      tags:
+        - Chats
+      summary: Get chats list.
+      description: Get chats list.
+      parameters:
+        - in: query
+          name: cursor
+          schema:
+            type: string
+          description: id of last chat item
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+      responses:
+        200:
+          description: Ok
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatsList'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        500:
+          $ref: '#/components/responses/ServerError'
+      security:
+        - ApiKeyAuth: [ ]
+
+  /chats/{cid}:
+    get:
+      operationId: getChat
+      tags:
+        - Chats
+      summary: Retrieving chat.
+      description: Retrieving chat.
+      parameters:
+        - in: path
+          name: cid
+          required: true
+          schema:
+            type: string
+          description: The chat ID
+      responses:
+        200:
+          description: Ok
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/ServerError'
+      security:
+        - ApiKeyAuth: [ ]
+    put:
+      operationId: updateChat
+      tags:
+        - Chats
+      description: Updates list of users in chat.
+      summary: Updates list of users in chat.
+      parameters:
+        - in: path
+          name: cid
+          required: true
+          schema:
+            type: string
+          description: The chat ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                users:
+                  type: array
+                  items:
+                    type: integer
+                  description: List of users IDs.
+                  example: [ 2, 4 ]
+      responses:
+        200:
+          description: Request was successful
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/ServerError'
+      security:
+        - ApiKeyAuth: [ ]
+
+  /chats/{cid}/messages:
+    get:
+      operationId: getChatMessages
+      tags:
+        - Chats
+      summary: Retrieving chat messages.
+      description: Retrieving chat messages.
+      parameters:
+        - in: path
+          name: cid
+          required: true
+          schema:
+            type: string
+          description: The chat ID
+        - in: query
+          name: cursor
+          schema:
+            type: string
+          description: id of last message item
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+      responses:
+        200:
+          description: Ok
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessagesList'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/ServerError'
+      security:
+        - ApiKeyAuth: [ ]
+    post:
+      operationId: createChatMessage
+      tags:
+        - Chats
+      description: Sends message to chat.
+      summary: Sends message to chat.
+      parameters:
+        - in: path
+          name: cid
+          required: true
+          schema:
+            type: string
+          description: The chat ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Message'
+      responses:
+        200:
+          description: Request was successful
+          headers:
+            X-Api-Version:
+              schema:
+                type: string
+                description: 'Current API version'
+                example: 1.0.0
+            X-Request-Id:
+              schema:
+                type: number
+                description: 'Unique ID of request. Use it for contact with support'
+                example: 7501512079143029
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/ServerError'
+      security:
+        - ApiKeyAuth: [ ]
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authroization
+
+  responses:
+    BadRequest:
+      description: The specified resource was not found
+      headers:
+        X-Api-Version:
+          schema:
+            type: string
+            description: 'Current API version'
+            example: 1.0.0
+        X-Request-Id:
+          schema:
+            type: number
+            description: 'Unique ID of request. Use it for contact with support'
+            example: 7501512079143029
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              object:
+                type: string
+                example: error
+              code:
+                type: number
+                enum: [ 4000, 4001, 4002, 4003, 4004 ]
+              message:
+                type: string
+                example: Content-Type should be application/json
+
+    Unauthorized:
+      description: Unauthorized
+      headers:
+        X-Api-Version:
+          schema:
+            type: string
+            description: 'Current API version'
+            example: 1.0.0
+        X-Request-Id:
+          schema:
+            type: number
+            description: 'Unique ID of request. Use it for contact with support'
+            example: 7501512079143029
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              object:
+                type: string
+                example: error
+              code:
+                type: number
+                enum: [ 4010, 4011 ]
+              message:
+                type: string
+                example: Unauthorized
+
+    Forbidden:
+      description: Forbidden
+      headers:
+        X-Api-Version:
+          schema:
+            type: string
+            description: 'Current API version'
+            example: 1.0.0
+        X-Request-Id:
+          schema:
+            type: number
+            description: 'Unique ID of request. Use it for contact with support'
+            example: 7501512079143029
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              object:
+                type: string
+                example: error
+              code:
+                type: number
+                enum: [ 4030, 4031, 4032 ]
+              message:
+                type: string
+                example: Forbidden
+
+    NotFound:
+      description: Not Found
+      headers:
+        X-Api-Version:
+          schema:
+            type: string
+            description: 'Current API version'
+            example: 1.0.0
+        X-Request-Id:
+          schema:
+            type: number
+            description: 'Unique ID of request. Use it for contact with support'
+            example: 7501512079143029
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              object:
+                type: string
+                example: error
+              code:
+                type: number
+                enum: [ 4040, 4041, 4042 ]
+              message:
+                type: string
+                example: Resource Not Found
+
+    ServerError:
+      description: Server Errors
+      headers:
+        X-Api-Version:
+          schema:
+            type: string
+            description: 'Current API version'
+            example: 1.0.0
+        X-Request-Id:
+          schema:
+            type: number
+            description: 'Unique ID of request. Use it for contact with support'
+            example: 7501512079143029
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              object:
+                type: string
+                example: error
+              code:
+                type: number
+                example: 5000
+              message:
+                type: string
+                example: Service temporary unavailable. Please try later.
+
+  schemas:
+    User:
+      type: object
+      properties:
+        object:
+          type: string
+          description: Model name.
+          example: 'user'
+        id:
+          type: integer
+          description: ID of user.
+          example: 1
+        username:
+          type: string
+          description: username.
+          example: 'janitor'
+        firstName:
+          type: string
+          example: 'Roger'
+        lastName:
+          type: string
+          example: 'Wilco'
+        age:
+          type: integer
+          example: 24
+          description: Age of user.
+        Gender:
+          type: string
+          enum:
+            - 'f'
+            - 'm'
+          example: 'f'
+          description: Gender of user.
+        city:
+          type: string
+          description: user's city.
+          example: 'New York'
+        interests:
+          type: string
+          description: user's interests.
+          example: 'do nothing'
+        createdAt:
+          type: integer
+          example: 1615812299,
+          description: UTC timestamp.
+        isFriend:
+          type: boolean
+          description: flag, if true then current user is your friend
+          example: true
+
+    UsersList:
+      type: object
+      properties:
+        object:
+          type: string
+          description: Model name.
+          example: 'list'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+
+    Chat:
+      type: object
+      properties:
+        object:
+          type: string
+          description: Model name.
+          example: 'chat'
+        id:
+          type: string
+          description: chat id.
+          example: '604f565622f02d3663a43d3b'
+        users:
+          type: array
+          items:
+            type: integer
+          description: id of participants
+          example: [ 1,2 ]
+        createdAt:
+          type: integer
+          example: 1615812299,
+          description: UTC timestamp.
+
+    ChatsList:
+      type: object
+      properties:
+        object:
+          type: string
+          description: Model name.
+          example: 'list'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Chat'
+
+    Message:
+      type: object
+      properties:
+        object:
+          type: string
+          description: Model name.
+          example: 'message'
+        id:
+          type: string
+          description: message id.
+          example: '604f56cb22f02d3663a43d3c'
+        cid:
+          type: string
+          description: chat id.
+          example: '604f565622f02d3663a43d3b'
+        uid:
+          type: integer
+          description: id of author.
+          example: 1
+        createdAt:
+          type: integer
+          example: 1615812299
+          description: UTC timestamp.
+        text:
+          type: string
+          description: message text.
+          example: 'Hi there!'
+
+    MessagesList:
+      type: object
+      properties:
+        object:
+          type: string
+          description: Model name.
+          example: 'list'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+
+    Token:
+      type: object
+      properties:
+        object:
+          type: string
+          description: Model name.
+          example: token
+        userId:
+          type: integer
+          description: ID of user.
+          example: '913f58c6-1d12-4b7e-8055-63eceb16089c'
+        token:
+          type: string
+          description: JWT.
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjozLCJleHAiOjE2MTU4MTQyMzQsImlhdCI6MTYxNTgxMDYzNCwiaXNzIjoiaGEtYmFja2VuZCJ9.TJBMU_6FqJnusOlkN0U-SoZLz33BD5f61MMpTQXV3w4'
+        username:
+          type: string
+          description: username.
+          example: 'janitor'
+        expiresAt:
+          type: integer
+          example: 1615812299
+          description: token's ttl
+
+    SignInRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          description: username.
+          example: 'janitor'
+        password:
+          type: string
+          description: password.
+          example: '1234567890'
+
+    SignUpRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          description: username.
+          example: 'janitor'
+        firstName:
+          type: string
+          example: 'Roger'
+        lastName:
+          type: string
+          example: 'Wilco'
+        age:
+          type: integer
+          example: 24
+          description: Age of user.
+        Gender:
+          type: string
+          enum:
+            - 'f'
+            - 'm'
+          example: 'f'
+          description: Gender of user.
+        city:
+          type: string
+          description: user's city.
+          example: 'New York'
+        interests:
+          type: string
+          description: user's interests.
+          example: 'do nothing'
+        password:
+          type: string
+          description: password.
+          example: '1234567890'
+        passwordConfirm:
+          type: string
+          description: password repeat.
+          example: '1234567890'
