@@ -37,12 +37,12 @@ func prepareMessageList(messages []entities.Message) *[]messageResponse {
 
 func fetchMessages(ms storages.MessageStorage, cs storages.ChatStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		uid, err := strconv.Atoi(r.URL.Query().Get("user_id"))
+		uid, err := strconv.Atoi(r.URL.Query().Get("uid"))
 		if err != nil {
 			server.ResponseWithError(w, entities.NewError("4002", "invalid user id"))
 			return
 		}
-		cid, err := primitive.ObjectIDFromHex(r.URL.Query().Get("chat_id"))
+		cid, err := primitive.ObjectIDFromHex(r.URL.Query().Get("cid"))
 		if err != nil {
 			server.ResponseWithError(w, entities.NewError("4001", "invalid chat id"))
 			return
@@ -85,9 +85,9 @@ func fetchMessages(ms storages.MessageStorage, cs storages.ChatStorage) http.Han
 }
 
 type postMessageBody struct {
-	CID primitive.ObjectID `json:"chat_id"`
-	UID int                `json:"user_id"`
-	Txt string             `json:"text"`
+	ChatId primitive.ObjectID `json:"cid"`
+	UserId int                `json:"uid"`
+	Text   string             `json:"txt"`
 }
 
 func createMessage(ms storages.MessageStorage, cs storages.ChatStorage) http.HandlerFunc {
@@ -98,7 +98,7 @@ func createMessage(ms storages.MessageStorage, cs storages.ChatStorage) http.Han
 			return
 		}
 
-		chat, err := cs.ReadOne(&body.CID)
+		chat, err := cs.ReadOne(&body.ChatId)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
 				server.ResponseWithError(w, entities.NewError("4040", "Chat Not Found"))
@@ -108,15 +108,15 @@ func createMessage(ms storages.MessageStorage, cs storages.ChatStorage) http.Han
 			return
 		}
 		// if it is new user in chat
-		if !chat.HasUser(body.UID) {
+		if !chat.HasUser(body.UserId) {
 			server.ResponseWithError(w, entities.NewError("4031", "user do not belongs to chat"))
 			return
 		}
 
 		message := entities.Message{
-			ChatId: body.CID,
-			UserId: body.UID,
-			Text:   body.Txt,
+			ChatId: body.ChatId,
+			UserId: body.UserId,
+			Text:   body.Text,
 		}
 
 		if err := ms.InsertOne(&message); err != nil {

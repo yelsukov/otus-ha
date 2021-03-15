@@ -39,6 +39,8 @@ services:
       DEBUG: "${DEBUG}"
       NEWS_TOKEN: "${NEWS_TOKEN}"
       NEWS_URL: "news:${NEWS_PORT}"
+      DIALOG_TOKEN: "${DIALOG_TOKEN}"
+      DIALOG_URL: "http://dialogue:${DIALOG_PORT}"
     depends_on:
       mysqldb:
         condition: service_healthy

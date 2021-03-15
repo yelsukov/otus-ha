@@ -35,15 +35,18 @@ func (c *Chat) HasUser(uid int) bool {
 
 // Unique removes duplicate elements from data. It assumes sort.IsSorted(data).
 func unique(data *[]int) {
-	sort.Ints(*data)
 	n := len(*data)
+	if n < 2 {
+		return
+	}
+
+	sort.Ints(*data)
+
 	k := 0
-	if n != 0 {
-		for i := 1; i < n; i++ {
-			if (*data)[k] < (*data)[i] {
-				k++
-				(*data)[k], (*data)[i] = (*data)[i], (*data)[k]
-			}
+	for i := 1; i < n; i++ {
+		if (*data)[k] < (*data)[i] {
+			k++
+			(*data)[k], (*data)[i] = (*data)[i], (*data)[k]
 		}
 	}
 	*data = (*data)[:k+1]

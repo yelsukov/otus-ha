@@ -21,11 +21,12 @@ type Server struct {
 func InitMiddlewares(mux *chi.Mux) *chi.Mux {
 	mux.Use(
 		middleware.Recoverer,
-		middleware.RequestID,
+		middleware.RequestID, // Check Request ID in headers and create new if it is empty
 		middleware.Logger,
 		middleware.Compress(3, "application/json"),
 		middleware.SetHeader("Content-Type", "application/json"),
 		middleware.SetHeader("Version", vars.VERSION),
+		// Put request id to response
 		func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("X-Request-Id", middleware.GetReqID(r.Context()))

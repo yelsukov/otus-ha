@@ -19,7 +19,7 @@ func GetChatsRoutes(storage storages.ChatStorage) *chi.Mux {
 	r.Get("/", fetchChats(storage))
 	r.Get("/{cid:[0-9a-z]+}", getChat(storage))
 	r.Post("/", createChat(storage))
-	r.Put("/", addUsers(storage))
+	r.Put("/{cid:[0-9a-z]+}", addUsers(storage))
 	return r
 }
 
@@ -38,7 +38,7 @@ func prepareChatsList(chats []entities.Chat) *[]chatResponse {
 
 func fetchChats(s storages.ChatStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userId, err := strconv.Atoi(r.URL.Query().Get("user_id"))
+		userId, err := strconv.Atoi(r.URL.Query().Get("uid"))
 		if err != nil {
 			server.ResponseWithError(w, entities.NewError("4000", "user id is invalid"))
 			return
@@ -69,7 +69,7 @@ func fetchChats(s storages.ChatStorage) http.HandlerFunc {
 
 func getChat(s storages.ChatStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		uid, err := strconv.Atoi(r.URL.Query().Get("user_id"))
+		uid, err := strconv.Atoi(r.URL.Query().Get("uid"))
 		if err != nil {
 			server.ResponseWithError(w, entities.NewError("4002", "invalid user id"))
 			return
@@ -119,26 +119,37 @@ func createChat(s storages.ChatStorage) http.HandlerFunc {
 	}
 }
 
-type putAddUsers struct {
-	CID   primitive.ObjectID `json:"chat_id"`
-	Users []int              `json:"users"`
-}
-
 func addUsers(cs storages.ChatStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var body putAddUsers
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		uid, err := strconv.Atoi(r.URL.Query().Get("uid"))
+		if err != nil {
+			server.ResponseWithError(w, entities.NewError("4002", "invalid user id"))
+			return
+		}
+
+		cid, err := primitive.ObjectIDFromHex(chi.URLParam(r, "cid"))
+		if err != nil {
+			server.ResponseWithError(w, entities.NewError("4001", "invalid chat id"))
+			return
+		}
+
+		var body postChatBody
+		if err = json.NewDecoder(r.Body).Decode(&body); err != nil {
 			server.ResponseWithError(w, entities.NewError("4000", "invalid JSON payload"))
 			return
 		}
 
-		chat, err := cs.ReadOne(&body.CID)
+		chat, err := cs.ReadOne(&cid)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
 				server.ResponseWithError(w, entities.NewError("4040", "Chat Not Found"))
 			} else {
 				server.ResponseWithError(w, err)
 			}
+			return
+		}
+		if !chat.HasUser(uid) {
+			server.ResponseWithError(w, entities.NewError("4031", "user do not belongs to chat"))
 			return
 		}
 

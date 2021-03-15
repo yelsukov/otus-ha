@@ -22,6 +22,11 @@ func authMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
+		if tkn[0] != "Entrypoint" {
+			ResponseWithError(w, entities.NewError("4030", "Forbidden"))
+			return
+		}
+
 		if tkn[1] != vars.TOKEN {
 			ResponseWithError(w, entities.NewError("4011", "invalid authorization token"))
 			return

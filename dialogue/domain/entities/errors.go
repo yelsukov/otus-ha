@@ -5,7 +5,7 @@ type KernelError struct {
 	Message string `json:"message"`
 }
 
-func (r *KernelError) Error() string {
+func (r KernelError) Error() string {
 	return r.Message
 }
 

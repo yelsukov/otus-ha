@@ -13,7 +13,7 @@ services:
     ports:
       - 27717:27017
     networks:
-      - infra
+      - news
 
   redis:
     image: redis:6.0.10
@@ -27,7 +27,7 @@ services:
       test: [ "CMD", "redis-cli","ping" ]
       timeout: 10s
     networks:
-      - infra
+      - news
 
   news:
     container_name: news
@@ -55,8 +55,12 @@ services:
         condition: service_healthy
     networks:
       - infra
+      - news
 
 networks:
   infra:
     name: infra
     external: true
+  news:
+    name: news
+    internal: true

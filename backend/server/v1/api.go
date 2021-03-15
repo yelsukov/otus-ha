@@ -14,6 +14,7 @@ import (
 	"github.com/yelsukov/otus-ha/backend/conf"
 	"github.com/yelsukov/otus-ha/backend/errors"
 	"github.com/yelsukov/otus-ha/backend/jwt"
+	"github.com/yelsukov/otus-ha/backend/providers/dialogue"
 	"github.com/yelsukov/otus-ha/backend/server/v1/handlers"
 	"github.com/yelsukov/otus-ha/backend/server/v1/responses"
 	"github.com/yelsukov/otus-ha/backend/storages/mysql"
@@ -61,6 +62,23 @@ func InitApiMux(db *sql.DB, tdb *tarantool.Connection, bus *bus.Producer, cfg *c
 	router.Route("/news", func(r chi.Router) {
 		r.Use(authParamMiddleware(authorizer))
 		r.HandleFunc("/", handlers.GetNews(cfg.NewsServiceUrl, cfg.NewsServiceToken))
+	})
+
+	dialogueService := &dialogue.ServiceProvider{Token: cfg.DialogueServiceToken, Url: cfg.DialogueServiceUrl}
+	router.Route("/chats", func(r chi.Router) {
+		r.Use(authenticationMiddleware(authorizer))
+		// Fetch chats
+		r.Get("/", handlers.FetchChats(dialogueService))
+		// Read chat
+		r.Get("/{cid:[0-9a-z]+}", handlers.GetChat(dialogueService))
+		// Fetch messages
+		r.Get("/{cid:[0-9a-z]+}/messages", handlers.FetchMessages(dialogueService))
+		// Send message
+		r.Post("/{cid:[0-9a-z]+}/messages", handlers.SendMessages(dialogueService))
+		// Create chat
+		r.Post("/", handlers.CreateChat(dialogueService))
+		// Update chat
+		r.Put("/{cid:[0-9a-z]+}", handlers.UpdateChat(dialogueService))
 	})
 
 	router.Post("/auth/sign-in", handlers.LoginHandler(userStore, authorizer, bus))

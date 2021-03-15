@@ -126,7 +126,7 @@ func GetUsers(store userCruder) http.HandlerFunc {
 func GetMe(store userCruder) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userId := r.Context().Value("currentUserId").(int64)
-		user, err := store.Get(int64(userId))
+		user, err := store.Get(userId)
 		if err != nil {
 			responses.ResponseWithError(w, err)
 			return

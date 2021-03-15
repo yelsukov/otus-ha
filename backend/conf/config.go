@@ -41,6 +41,9 @@ type Config struct {
 	NewsServiceToken string
 	NewsServiceUrl   string
 
+	DialogueServiceToken string
+	DialogueServiceUrl   string
+
 	ServerPort     string
 	RequestTimeout time.Duration // in seconds
 
@@ -106,6 +109,13 @@ func PopulateConfig() (*Config, error) {
 	}
 	if cfg.NewsServiceUrl, exist = os.LookupEnv("NEWS_URL"); !exist {
 		return nil, errors.New("ENV `NEWS_URL` should be specified")
+	}
+
+	if cfg.DialogueServiceToken, exist = os.LookupEnv("DIALOG_TOKEN"); !exist {
+		return nil, errors.New("ENV `DIALOG_TOKEN` should be specified")
+	}
+	if cfg.DialogueServiceUrl, exist = os.LookupEnv("DIALOG_URL"); !exist {
+		return nil, errors.New("ENV `DIALOG_URL` should be specified")
 	}
 
 	cfg.RequestTimeout = defaultReqTimeout
