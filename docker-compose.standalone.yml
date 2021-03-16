@@ -19,7 +19,7 @@ services:
     ports:
       - 3336:3306
     networks:
-      - infra
+      - inner
 
   backend:
     container_name: "backend"
@@ -45,7 +45,8 @@ services:
       mysqldb:
         condition: service_healthy
     networks:
-      - infra
+      - queue
+      - inner
 
   frontend:
     container_name: "frontend"
@@ -55,9 +56,12 @@ services:
     ports:
       - 8008:80
     networks:
-      - infra
+      - inner
 
 networks:
-  infra:
-    name: infra
+  queue:
+    name: queue
     external: true
+
+  inner:
+    name: inner

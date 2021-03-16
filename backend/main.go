@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	migrate "github.com/rubenv/sql-migrate"
 	"os"
 	"os/signal"
 	"syscall"
@@ -12,7 +13,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/tarantool/go-tarantool"
 
-	"github.com/rubenv/sql-migrate"
 	"github.com/yelsukov/otus-ha/backend/bus"
 	"github.com/yelsukov/otus-ha/backend/conf"
 	"github.com/yelsukov/otus-ha/backend/server"
@@ -45,6 +45,37 @@ func connectDb(cfg *conf.Config) (*sql.DB, error) {
 	db.SetConnMaxLifetime(cfg.DbConnMaxLife)
 
 	return db, nil
+}
+
+// TODO remove to separate cli command
+func migrateUp(cfg *conf.Config) {
+	db, err := sql.Open(
+		"mysql",
+		cfg.DbMigrationsUser+":"+cfg.DbMigrationsPassword+"@tcp("+cfg.DbMigrationsHost+":"+cfg.DbMigrationsPort+")/"+cfg.DbName+"?parseTime=true",
+	)
+	if err != nil {
+		log.WithError(err).Error("Failed to connect for migration")
+		return
+	}
+
+	for i := 0; i < 10; i++ {
+		if err = db.Ping(); err == nil {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+	if err != nil {
+		log.WithError(err).Error("Failed to connect for migration")
+		return
+	}
+
+	log.Info("implementing migrations")
+	migrations := &migrate.FileMigrationSource{Dir: cfg.DbMigrationsPath}
+	n, err := migrate.Exec(db, "mysql", migrations, migrate.Up)
+	if err != nil {
+		log.WithError(err).Fatal("failed to implement migrations")
+	}
+	log.Infof("applied %d migrations!", n)
 }
 
 func main() {
@@ -86,12 +117,12 @@ func main() {
 		} else {
 			log.Info("successfully connected with tarantool")
 		}
+		defer func() {
+			if err = ttConn.Close(); err != nil {
+				log.WithError(err).Error("failed to disconnect from tarantool")
+			}
+		}()
 	}
-	defer func() {
-		if err = ttConn.Close(); err != nil {
-			log.WithError(err).Error("failed to disconnect from tarantool")
-		}
-	}()
 
 	// Connect to db and implement migrations
 	log.Info("connecting to db...")
@@ -106,13 +137,10 @@ func main() {
 	}()
 	log.Info("successfully connected to db")
 
-	log.Info("implementing migrations")
-	migrations := &migrate.FileMigrationSource{Dir: config.DbMigrationsPath}
-	n, err := migrate.Exec(db, "mysql", migrations, migrate.Up)
-	if err != nil {
-		log.WithError(err).Fatal("failed to implement migrations")
+	// Run migration
+	if !config.IsSlave {
+		migrateUp(config)
 	}
-	log.Infof("applied %d migrations!", n)
 
 	eventBus := bus.NewProducer(ctx, config.BusDSN, config.BusTopic)
 	defer eventBus.Close()

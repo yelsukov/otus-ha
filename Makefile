@@ -26,10 +26,10 @@ down:
 	sudo docker-compose -f docker-compose.${TYPE}.yml down -v
 
 upFull:
-	sudo docker-compose -f docker-compose.standalone.yml -f docker-compose.news.yml -f docker-compose.dialogue.yml -f docker-compose.infra.yml up --build -d
+	sudo docker-compose -f docker-compose.news.yml -f docker-compose.dialogue.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml up --build -d
 
 downFull:
-	sudo docker-compose -f docker-compose.standalone.yml -f docker-compose.news.yml -f docker-compose.dialogue.yml -f docker-compose.infra.yml down -v
+	sudo docker-compose -f docker-compose.news.yml -f docker-compose.dialogue.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml down -v
 
 startReplica:
 	sudo docker-compose -f docker-compose.proxysql.yml up --build -d
@@ -38,10 +38,16 @@ stopReplica:
 	sudo docker-compose -f docker-compose.proxysql.yml down -v
 
 startTaran:
-	sudo docker-compose -f docker-compose.tarantool.yml -f docker-compose.infra.yml up --build -d
+	sudo docker-compose -f docker-compose.tarantool.yml -f docker-compose.queue.yml up --build -d
 
 stopTaran:
-	sudo docker-compose -f docker-compose.tarantool.yml -f docker-compose.infra.yml down -v
+	sudo docker-compose -f docker-compose.tarantool.yml -f docker-compose.queue.yml down -v
+
+upCluster:
+	sudo docker-compose -f docker-compose.news.yml -f docker-compose.dialogue.yml -f docker-compose.cluster.yml -f docker-compose.haproxy.yml -f docker-compose.queue.yml up --build -d
+
+downCluster:
+	sudo docker-compose -f docker-compose.news.yml -f docker-compose.dialogue.yml -f docker-compose.cluster.yml -f docker-compose.haproxy.yml -f docker-compose.queue.yml down -v
 
 startMonitor:
 	sudo docker-compose -f deployment/monitoring/docker-compose.yml up --build -d

@@ -136,7 +136,7 @@ NoSQL база данных, используется сервисом ново�
 > make upFull
 
 Или через
-> sudo docker-compose -f docker-compose.standalone.yml -f docker-compose.news.yml -f docker-compose.infra.yml up --build -d
+> sudo docker-compose -f docker-compose.standalone.yml -f docker-compose.news.yml -f docker-compose.queue.yml up --build -d
 
 **Создаем учётку тестера**
 

@@ -23,7 +23,10 @@ VALUES (1, 'janitor', 'Roger', 'Wilco', 25, 'm', 'Unknown',
         '$2a$10$sS1EKXztHWywwsQr5xCERe92goE2UIUuOXF.yrabdH1aRGxbIx2J.', NOW(), 'Do nothing, Get troubles'),
        (2, 'madscie', 'Sludge', 'Vohaul', 125, 'm', 'Hidden Space Base',
         '$2a$10$sS1EKXztHWywwsQr5xCERe92goE2UIUuOXF.yrabdH1aRGxbIx2J.', NOW(),
-        'Experiments, Evil Plans, Conquer the Galaxy');
+        'Experiments, Evil Plans, Conquer the Galaxy'),
+       (3, 'tester', 'Test', 'Testov', 21, 'm', 'Office',
+        '$2a$10$Hs8x8nl52IQu5tkYU3DNN.umxOZ31iAU/p04h9Dpby2YuZJPQ6eka', NOW(),
+        'Testing some shit');
 
 CREATE TABLE `friends`
 (

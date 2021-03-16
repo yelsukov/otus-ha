@@ -147,7 +147,7 @@
 > make upFull
 
 или через docker-compose:
-> sudo docker-compose -f docker-compose.standalone.yml -f docker-compose.news.yml -f docker-compose.infra.yml up --build -d
+> sudo docker-compose -f docker-compose.standalone.yml -f docker-compose.news.yml -f docker-compose.queue.yml up --build -d
 
 После запуска проверяем логи сервиса Новостей:
 

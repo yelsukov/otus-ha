@@ -54,12 +54,16 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - infra
+      - queue
+      - inner
       - news
 
 networks:
-  infra:
-    name: infra
+  queue:
+    name: queue
+    external: true
+  inner:
+    name: inner
     external: true
   news:
     name: news

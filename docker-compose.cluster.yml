@@ -1,172 +1,82 @@
 version: '2.4'
 
 services:
-
-  master_db:
-    image: mysql:8.0.22
-    container_name: "master_db"
-    hostname: "master_db"
+  node01:
+    container_name: "node01"
+    build:
+      context: backend
     restart: always
-    volumes:
-#      - /var/data/mysql/master:/var/lib/mysql
-      - ./deployment/cluster/mysql/master.cnf:/etc/mysql/conf.d/my.cnf
-    environment:
-      MYSQL_DATABASE: "${DB_NAME}"
-      MYSQL_USER: "${MASTER_USER}"
-      MYSQL_ROOT_PASSWORD: "${MASTER_PASSWORD}"
-    healthcheck:
-      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_ROOT_PASSWORD
-      interval: 1s
-      timeout: 5s
-      retries: 30
-    ports:
-      - 3336:3306
-    networks:
-      - hw
-
-  slave1_db:
-    image: mysql:8.0.22
-    container_name: "slave1_db"
-    hostname: "slave1_db"
-    restart: always
-    volumes:
-#      - /var/data/mysql/slave2:/var/lib/mysql
-      - ./deployment/cluster/mysql/slave2.cnf:/etc/mysql/conf.d/my.cnf
-    environment:
-      MYSQL_USER: "${SLAVE_USER}"
-      MYSQL_ROOT_PASSWORD: "${SLAVE_PASSWORD}"
-    healthcheck:
-      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_ROOT_PASSWORD
-      interval: 1s
-      timeout: 5s
-      retries: 30
-    ports:
-      - 3337:3306
-    depends_on:
-      master_db:
-        condition: service_healthy
-    networks:
-      - hw
-
-  slave2_db:
-    image: mysql:8.0.22
-    container_name: "slave2_db"
-    hostname: "slave2_db"
-    restart: always
-    volumes:
-#      - /var/data/mysql/slave2:/var/lib/mysql
-      - ./deployment/cluster/mysql/slave2.cnf:/etc/mysql/conf.d/my.cnf
-    environment:
-      MYSQL_USER: "${SLAVE_USER}"
-      MYSQL_ROOT_PASSWORD: "${SLAVE_PASSWORD}"
-    healthcheck:
-      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_ROOT_PASSWORD
-      interval: 1s
-      timeout: 5s
-      retries: 30
-    ports:
-      - 3338:3306
-    depends_on:
-      master_db:
-        condition: service_healthy
-    networks:
-      - hw
-
-  slave3_db:
-    image: mysql:8.0.22
-    container_name: "slave3_db"
-    hostname: "slave3_db"
-    restart: always
-    volumes:
-#      - /var/data/mysql/slave2:/var/lib/mysql
-      - ./deployment/cluster/mysql/slave3.cnf:/etc/mysql/conf.d/my.cnf
-    environment:
-      MYSQL_USER: "${SLAVE_USER}"
-      MYSQL_ROOT_PASSWORD: "${SLAVE_PASSWORD}"
-    healthcheck:
-      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_ROOT_PASSWORD
-      interval: 1s
-      timeout: 5s
-      retries: 30
-    ports:
-      - 3339:3306
-    depends_on:
-      master_db:
-        condition: service_healthy
-    networks:
-      - hw
-
-  proxysql:
-    container_name: "proxysql"
-    build: ./deployment/proxysql
-    restart: always
-    healthcheck:
-      test: mysqladmin ping --host=127.0.0.1 -P 6032 -ustats --password=stats
-      interval: 1s
-      timeout: 5s
-      retries: 30
-    ports:
-      - 16033:6033
-      - 16032:6032
-#    volumes:
-#      - /var/data/proxysql:/var/lib/proxysql
-    depends_on:
-      master_db:
-        condition: service_healthy
-      slave1_db:
-        condition: service_healthy
-      slave2_db:
-        condition: service_healthy
-      slave3_db:
-        condition: service_healthy
-    networks:
-      - hw
-
-  firestarter:
-    container_name: "clusterator"
-    build: ./deployment/cluster
-    env_file:
-      - .env
-    depends_on:
-      proxysql:
-        condition: service_healthy
-    command: bash setupCluster.sh
-    networks:
-      - hw
-
-  backend:
-    container_name: "backend"
-    build: ./backend
-    restart: always
-    ports:
-      - 8007:8080
     environment:
       JWT_SECRET: "${JWT_SECRET}"
-      DB_HOST: "proxysql"
-      DB_PORT: "6033"
-      DB_USER: "${PROXY_USER}"
-      DB_PASSWORD: "${PROXY_PASSWORD}"
+      DB_HOST: "haproxy"
+      DB_USER: "${MASTER_USER}"
+      DB_PASSWORD: "${MASTER_PASSWORD}"
       DB_NAME: "${DB_NAME}"
+      BUS_DSN: "${BUS_DSN}"
+      BUS_TOPIC: "${BUS_TOPIC}"
       DEBUG: "${DEBUG}"
-    depends_on:
-      firestarter:
-        condition: service_started
+      NEWS_TOKEN: "${NEWS_TOKEN}"
+      NEWS_URL: "news:${NEWS_PORT}"
+      DIALOG_TOKEN: "${DIALOG_TOKEN}"
+      DIALOG_URL: "http://dialogue:${DIALOG_PORT}"
+      MIGRATIONS_HOST: "master_db"
+      MIGRATIONS_USER: "${MASTER_USER}"
+      MIGRATIONS_PASS: "${MASTER_PASSWORD}"
     networks:
-      - hw
+      - inner
+      - storage
+      - queue
+      - entry
 
-  orc:
-    container_name: "orc"
-    build: ./deployment/orchestrator/
-    ports:
-      - "3101:3000"
-    volumes:
-      - ./deployment/orchestrator/orc.conf.json:/etc/orchestrator.conf.json
+  node02:
+    container_name: "node02"
+    build:
+      context: backend
+    restart: always
+    environment:
+      JWT_SECRET: "${JWT_SECRET}"
+      DB_HOST: "haproxy"
+      DB_USER: "${MASTER_USER}"
+      DB_PASSWORD: "${MASTER_PASSWORD}"
+      DB_NAME: "${DB_NAME}"
+      BUS_DSN: "${BUS_DSN}"
+      BUS_TOPIC: "${BUS_TOPIC}"
+      DEBUG: "${DEBUG}"
+      NEWS_TOKEN: "${NEWS_TOKEN}"
+      NEWS_URL: "news:${NEWS_PORT}"
+      DIALOG_TOKEN: "${DIALOG_TOKEN}"
+      DIALOG_URL: "http://dialogue:${DIALOG_PORT}"
+      SLAVE: "true"
     depends_on:
-      firestarter:
-        condition: service_started
+      - node01
     networks:
-      - hw
+      - inner
+      - storage
+      - queue
+      - entry
+
+  nginx:
+    image: nginx:1.19.6-alpine
+    container_name: nginx
+    restart: on-failure
+    volumes:
+      - ./deployment/nginx/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - 80:80
+    depends_on:
+      - node01
+      - node02
+    networks:
+      - entry
 
 networks:
-  hw:
-    name: hw
+  queue:
+    name: queue
+    external: true
+  storage:
+    name: storage
+    external: true
+  inner:
+    name: inner
+  entry:
+    name: entry

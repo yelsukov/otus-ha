@@ -51,7 +51,7 @@
 
 <a name="configuration"></a>
 ### Конфигурация
-1. [Конфиг docker-compose](../../docker-compose.cluster.yml)
+1. [Конфиг docker-compose](../../docker-compose.orchestrator.yml)
 2. Конфигурация MySQL серверов
     - [Конфиг Master Node](../../deployment/cluster/mysql/master.cnf)
     - [Конфиг Slave Node #1](../../deployment/cluster/mysql/slave1.cnf)

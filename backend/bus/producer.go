@@ -27,7 +27,7 @@ func NewProducer(ctx context.Context, dsn, topic string) *Producer {
 
 func (p *Producer) Close() {
 	log.Info("closing producer")
-	if err := p.writer.Close(); err == nil {
+	if err := p.writer.Close(); err != nil {
 		log.WithError(err).Error("cannot close kafka conn")
 	} else {
 		log.Info("producer connection has been closed")

@@ -47,7 +47,7 @@
 > make startTaran
 
 Или через
-> sudo docker-compose -f docker-compose.tarantool.yml -f docker-compose.infra.yml up --build -d
+> sudo docker-compose -f docker-compose.tarantool.yml -f docker-compose.queue.yml up --build -d
 
 Наполняем мускул данными
 > make seed SEED_QTY=1000000

@@ -7,7 +7,7 @@ services:
     image: zookeeper:3.6.1
     restart: unless-stopped
     networks:
-      - infra
+      - queue
 
   kafka:
     image: wurstmeister/kafka:2.13-2.7.0
@@ -23,8 +23,8 @@ services:
     depends_on:
       - zookeeper
     networks:
-      - infra
+      - queue
 
 networks:
-  infra:
-    name: infra
+  queue:
+    name: queue

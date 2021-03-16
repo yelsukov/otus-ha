@@ -1,0 +1,138 @@
+version: '2.4'
+
+services:
+
+  master_db:
+    image: mysql:5.7
+    container_name: "master_db"
+    hostname: "master_db"
+    restart: always
+    volumes:
+      #      - /var/data/mysql/master:/var/lib/mysql
+      - ./deployment/cluster/mysql/master.cnf:/etc/mysql/conf.d/my.cnf
+    environment:
+      MYSQL_DATABASE: "${DB_NAME}"
+      MYSQL_USER: "${MASTER_USER}"
+      MYSQL_ROOT_PASSWORD: "${MASTER_PASSWORD}"
+    ports:
+      - 3336:3306
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_ROOT_PASSWORD
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    networks:
+      - storage
+
+  slave1_db:
+    image: mysql:5.7
+    container_name: "slave1_db"
+    hostname: "slave1_db"
+    restart: always
+    volumes:
+      #      - /var/data/mysql/slave2:/var/lib/mysql
+      - ./deployment/cluster/mysql/slave2.cnf:/etc/mysql/conf.d/my.cnf
+    ports:
+      - 3337:3306
+    environment:
+      MYSQL_USER: "${MASTER_USER}"
+      MYSQL_ROOT_PASSWORD: "${MASTER_PASSWORD}"
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_ROOT_PASSWORD
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    depends_on:
+      master_db:
+        condition: service_healthy
+    networks:
+      - storage
+
+  slave2_db:
+    image: mysql:5.7
+    container_name: "slave2_db"
+    hostname: "slave2_db"
+    restart: always
+    volumes:
+      #      - /var/data/mysql/slave2:/var/lib/mysql
+      - ./deployment/cluster/mysql/slave2.cnf:/etc/mysql/conf.d/my.cnf
+    ports:
+      - 3338:3306
+    environment:
+      MYSQL_USER: "${MASTER_USER}"
+      MYSQL_ROOT_PASSWORD: "${MASTER_PASSWORD}"
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_ROOT_PASSWORD
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    depends_on:
+      master_db:
+        condition: service_healthy
+    networks:
+      - storage
+
+  slave3_db:
+    image: mysql:5.7
+    container_name: "slave3_db"
+    hostname: "slave3_db"
+    restart: always
+    volumes:
+      #      - /var/data/mysql/slave2:/var/lib/mysql
+      - ./deployment/cluster/mysql/slave3.cnf:/etc/mysql/conf.d/my.cnf
+    ports:
+      - 3339:3306
+    environment:
+      MYSQL_USER: "${MASTER_USER}"
+      MYSQL_ROOT_PASSWORD: "${MASTER_PASSWORD}"
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_ROOT_PASSWORD
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    depends_on:
+      master_db:
+        condition: service_healthy
+    networks:
+      - storage
+
+  firestarter:
+    container_name: firestarter
+    build:
+      context: deployment/haproxy
+    env_file:
+      - .env
+    depends_on:
+      master_db:
+        condition: service_healthy
+      slave1_db:
+        condition: service_healthy
+      slave2_db:
+        condition: service_healthy
+      slave3_db:
+        condition: service_healthy
+    command: bash setupCluster.sh
+    networks:
+      - storage
+
+  haproxy:
+    image: haproxy:2.3
+    container_name: haproxy
+    environment:
+      NODE1: master_db:3306
+      NODE2: slave1_db:3306
+      NODE3: slave2_db:3306
+      NODE4: slave3_db:3306
+    ports:
+      - 13336:3306
+    volumes:
+      - ./deployment/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    depends_on:
+      firestarter:
+        condition: service_started
+    networks:
+      - storage
+
+networks:
+  storage:
+    name: storage

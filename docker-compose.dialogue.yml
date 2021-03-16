@@ -134,13 +134,13 @@ services:
       - sharder
     networks:
       - dlg
-      - infra
+      - inner
 
 
 networks:
   dlg:
     name: dlg
     internal: true
-  infra:
-    name: infra
+  inner:
+    name: inner
     external: true

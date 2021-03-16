@@ -21,15 +21,20 @@ const (
 
 // Config struct holds application's parameters
 type Config struct {
-	DbUser           string
-	DbPassword       string
-	DbHost           string
-	DbPort           string
-	DbName           string
-	DbMaxOpenConn    int
-	DbMaxIdleConn    int
-	DbConnMaxLife    time.Duration
-	DbMigrationsPath string
+	DbUser        string
+	DbPassword    string
+	DbHost        string
+	DbPort        string
+	DbName        string
+	DbMaxOpenConn int
+	DbMaxIdleConn int
+	DbConnMaxLife time.Duration
+
+	DbMigrationsPath     string
+	DbMigrationsUser     string
+	DbMigrationsPassword string
+	DbMigrationsHost     string
+	DbMigrationsPort     string
 
 	TaranDsn  string
 	TaranUser string
@@ -51,6 +56,8 @@ type Config struct {
 	JwtTtl    time.Duration
 
 	DebugMode bool
+
+	IsSlave bool
 }
 
 func PopulateConfig() (*Config, error) {
@@ -85,8 +92,20 @@ func PopulateConfig() (*Config, error) {
 	cfg.DbMaxIdleConn = defaultDbIdleConn
 	cfg.DbConnMaxLife = defaultDbConnLife
 
-	if cfg.DbMigrationsPath, exist = os.LookupEnv("DB_MIGRATIONS_PATH"); !exist {
+	if cfg.DbMigrationsPath, exist = os.LookupEnv("MIGRATIONS_PATH"); !exist {
 		cfg.DbMigrationsPath = filepath.Dir(filepath.Dir(os.Args[0])) + "/backend/migrations"
+	}
+	if cfg.DbMigrationsUser, exist = os.LookupEnv("MIGRATIONS_USER"); !exist {
+		cfg.DbMigrationsUser = cfg.DbUser
+	}
+	if cfg.DbMigrationsPassword, exist = os.LookupEnv("MIGRATIONS_PASS"); !exist {
+		cfg.DbMigrationsPassword = cfg.DbPassword
+	}
+	if cfg.DbMigrationsHost, exist = os.LookupEnv("MIGRATIONS_HOST"); !exist {
+		cfg.DbMigrationsHost = cfg.DbHost
+	}
+	if cfg.DbMigrationsPort, exist = os.LookupEnv("MIGRATIONS_PORT"); !exist {
+		cfg.DbMigrationsPort = cfg.DbPort
 	}
 
 	cfg.TaranDsn, exist = os.LookupEnv("TARAN_DSN")
@@ -122,6 +141,9 @@ func PopulateConfig() (*Config, error) {
 
 	tmp, exist := os.LookupEnv("DEBUG")
 	cfg.DebugMode = exist && tmp == "true"
+
+	tmp, exist = os.LookupEnv("SLAVE")
+	cfg.IsSlave = exist && tmp == "true"
 
 	return &cfg, nil
 }

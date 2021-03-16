@@ -80,6 +80,8 @@ services:
     ports:
       - 8007:8080
     environment:
+      DIALOG_TOKEN: "${DIALOG_TOKEN}"
+      DIALOG_URL: "http://dialogue:${DIALOG_PORT}"
       JWT_SECRET: "${JWT_SECRET}"
       DB_HOST: "mysqldb"
       DB_USER: "${MASTER_USER}"
@@ -99,12 +101,12 @@ services:
       tarantool:
         condition: service_healthy
     networks:
-      - infra
+      - queue
       - taran
 
 networks:
   taran:
     name: taran
-  infra:
-    name: infra
+  queue:
+    name: queue
     external: true
