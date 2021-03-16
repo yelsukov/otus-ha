@@ -133,7 +133,7 @@ FLUSH PRIVILEGES;
 
 ### Конфигурация HAProxy
 
-[haprooxy.cfg](../../deployment/haproxy/haproxy.cfg):
+[haproxy.cfg](../../deployment/haproxy/haproxy.cfg):
 ```
 global
     maxconn 500
