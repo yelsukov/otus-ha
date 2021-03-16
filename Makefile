@@ -44,10 +44,10 @@ stopTaran:
 	sudo docker-compose -f docker-compose.tarantool.yml -f docker-compose.queue.yml down -v
 
 upCluster:
-	sudo docker-compose -f docker-compose.news.yml -f docker-compose.dialogue.yml -f docker-compose.cluster.yml -f docker-compose.haproxy.yml -f docker-compose.queue.yml up --build -d
+	sudo docker-compose -f docker-compose.cluster.yml -f docker-compose.haproxy.yml -f docker-compose.queue.yml up --build -d
 
 downCluster:
-	sudo docker-compose -f docker-compose.news.yml -f docker-compose.dialogue.yml -f docker-compose.cluster.yml -f docker-compose.haproxy.yml -f docker-compose.queue.yml down -v
+	sudo docker-compose -f docker-compose.cluster.yml -f docker-compose.haproxy.yml -f docker-compose.queue.yml down -v
 
 startMonitor:
 	sudo docker-compose -f deployment/monitoring/docker-compose.yml up --build -d
