@@ -50,8 +50,7 @@
 Самим кластером рулит Orchestrator, он же и производит выбор из доступных реплик, новой master ноды, если старый узел
 приуныл.
 
-Если интересно, то вот [детальный отчет по организации такой инфраструктуры](../replication/p2_semi_sync_replication.md)
-.
+Если интересно, то вот [детальный отчет по организации этой инфраструктуры](../replication/p2_semi_sync_replication.md).
 
 Но так как данная задача про haproxy + необходима балансировка бэкенда через nginx, то ниже по тексту реализация.
 
@@ -134,6 +133,7 @@ FLUSH PRIVILEGES;
 ### Конфигурация HAProxy
 
 [haproxy.cfg](../../deployment/haproxy/haproxy.cfg):
+
 ```
 global
     maxconn 500
@@ -165,6 +165,7 @@ listen mysql-cluster
 ### Конфигурация Nginx
 
 [nginx.conf](../../deployment/nginx/nginx.conf):
+
 ```
 worker_processes  8;
 worker_rlimit_nofile 8192;
