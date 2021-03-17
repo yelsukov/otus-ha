@@ -10,8 +10,6 @@ import (
 	"github.com/yelsukov/otus-ha/backend/errors"
 	"github.com/yelsukov/otus-ha/backend/providers/dialogue"
 	"github.com/yelsukov/otus-ha/backend/server/v1/responses"
-	"github.com/yelsukov/otus-ha/dialogue/domain/entities"
-	"github.com/yelsukov/otus-ha/dialogue/server"
 )
 
 type dialogueProvider interface {
@@ -42,13 +40,13 @@ func GetChat(provider dialogueProvider) http.HandlerFunc {
 
 		cid := chi.URLParam(r, "cid")
 		if cid == "" {
-			server.ResponseWithError(w, errors.New("4001", "invalid chat id"))
+			responses.ResponseWithError(w, errors.New("4001", "invalid chat id"))
 			return
 		}
 
 		chat, err := provider.GetChat(r.Context(), int(uid), cid)
 		if err != nil {
-			server.ResponseWithError(w, err)
+			responses.ResponseWithError(w, err)
 			return
 		}
 
@@ -62,7 +60,7 @@ func CreateChat(provider dialogueProvider) http.HandlerFunc {
 
 		var body map[string][]int
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || len(body["users"]) < 2 {
-			server.ResponseWithError(w, entities.NewError("4000", "invalid JSON payload"))
+			responses.ResponseWithError(w, errors.New("4000", "invalid JSON payload"))
 			return
 		}
 
@@ -74,7 +72,7 @@ func CreateChat(provider dialogueProvider) http.HandlerFunc {
 			}
 		}
 		if !found {
-			server.ResponseWithError(w, entities.NewError("4030", "Forbidden"))
+			responses.ResponseWithError(w, errors.New("4030", "Forbidden"))
 			return
 		}
 
@@ -94,13 +92,13 @@ func UpdateChat(provider dialogueProvider) http.HandlerFunc {
 
 		cid := chi.URLParam(r, "cid")
 		if cid == "" {
-			server.ResponseWithError(w, errors.New("4001", "invalid chat id"))
+			responses.ResponseWithError(w, errors.New("4001", "invalid chat id"))
 			return
 		}
 
 		var body map[string][]int
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || len(body["users"]) < 2 {
-			server.ResponseWithError(w, entities.NewError("4000", "invalid JSON payload"))
+			responses.ResponseWithError(w, errors.New("4000", "invalid JSON payload"))
 			return
 		}
 
@@ -120,7 +118,7 @@ func FetchMessages(provider dialogueProvider) http.HandlerFunc {
 
 		cid := chi.URLParam(r, "cid")
 		if cid == "" {
-			server.ResponseWithError(w, errors.New("4001", "invalid chat id"))
+			responses.ResponseWithError(w, errors.New("4001", "invalid chat id"))
 			return
 		}
 
@@ -140,7 +138,7 @@ func SendMessages(provider dialogueProvider) http.HandlerFunc {
 
 		var body dialogue.PostMessageBody
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			server.ResponseWithError(w, entities.NewError("4000", "invalid JSON payload"))
+			responses.ResponseWithError(w, errors.New("4000", "invalid JSON payload"))
 			return
 		}
 		body.UserId = int(uid)

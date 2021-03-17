@@ -5,11 +5,13 @@ import (
 	"database/sql"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/tarantool/go-tarantool"
 
+	"github.com/yelsukov/otus-ha/backend/balancer"
 	"github.com/yelsukov/otus-ha/backend/bus"
 	"github.com/yelsukov/otus-ha/backend/conf"
 	"github.com/yelsukov/otus-ha/backend/errors"
@@ -23,7 +25,7 @@ import (
 
 const version = "1.0.0"
 
-func InitApiMux(db *sql.DB, tdb *tarantool.Connection, bus *bus.Producer, cfg *conf.Config) *chi.Mux {
+func InitApiMux(ctx context.Context, db *sql.DB, tdb *tarantool.Connection, bus *bus.Producer, cfg *conf.Config) *chi.Mux {
 	authorizer := &jwt.JWT{Secret: []byte(cfg.JwtSecret), Ttl: cfg.JwtTtl}
 
 	router := chi.NewRouter()
@@ -64,7 +66,14 @@ func InitApiMux(db *sql.DB, tdb *tarantool.Connection, bus *bus.Producer, cfg *c
 		r.HandleFunc("/", handlers.GetNews(cfg.NewsServiceUrl, cfg.NewsServiceToken))
 	})
 
-	dialogueService := &dialogue.ServiceProvider{Token: cfg.DialogueServiceToken, Url: cfg.DialogueServiceUrl}
+	dialogueBalancer, err := balancer.New(cfg.ConsulDsn, cfg.DialogueServiceName, cfg.DialogueServiceHosts, 5*time.Second)
+	if err == nil {
+		go dialogueBalancer.RunHealthChecker(ctx)
+	}
+	dialogueService := &dialogue.ServiceProvider{
+		Token:    cfg.DialogueServiceToken,
+		Balancer: dialogueBalancer,
+	}
 	router.Route("/chats", func(r chi.Router) {
 		r.Use(authenticationMiddleware(authorizer))
 		// Fetch chats

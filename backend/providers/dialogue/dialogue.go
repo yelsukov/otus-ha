@@ -14,21 +14,30 @@ import (
 )
 
 type ServiceProvider struct {
-	Token string // auth token
-	Url   string // service api url
+	Token    string // auth token
+	Balancer ServiceBalancer
 }
 
-func (n *ServiceProvider) sendRequest(ctx context.Context, method, route string, body io.Reader) (*http.Response, error) {
+type ServiceBalancer interface {
+	GetAddr() (string, error)
+}
+
+func (sp *ServiceProvider) sendRequest(ctx context.Context, method, route string, body io.Reader) (*http.Response, error) {
 	// prepare the http client
 	client := &http.Client{Timeout: 1 * time.Second}
 
+	// get next address from balancing
+	url, err := sp.Balancer.GetAddr()
+	if err != nil {
+		return nil, err
+	}
 	// prepare request
-	req, err := http.NewRequest(method, n.Url+route, body)
+	req, err := http.NewRequest(method, url+route, body)
 	if err != nil {
 		return nil, err
 	}
 	// Add headers
-	req.Header.Add("Authorization", "Entrypoint "+n.Token)
+	req.Header.Add("Authorization", "Entrypoint "+sp.Token)
 	if method == "POST" || method == "PUT" {
 		req.Header.Set("Content-Type", "application/json")
 	}

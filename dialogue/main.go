@@ -2,21 +2,23 @@ package main
 
 import (
 	"context"
-	"github.com/yelsukov/otus-ha/dialogue/server"
-	"github.com/yelsukov/otus-ha/dialogue/server/endpoints"
-	"github.com/yelsukov/otus-ha/dialogue/storages"
-	"github.com/yelsukov/otus-ha/dialogue/vars"
-
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/yelsukov/otus-ha/dialogue/config"
+	"github.com/yelsukov/otus-ha/dialogue/consul"
+	"github.com/yelsukov/otus-ha/dialogue/server"
+	"github.com/yelsukov/otus-ha/dialogue/server/endpoints"
+	"github.com/yelsukov/otus-ha/dialogue/storages"
+	"github.com/yelsukov/otus-ha/dialogue/vars"
 )
 
 func establishDbConn(ctx context.Context, dsn string) (*mongo.Client, error) {
@@ -58,7 +60,7 @@ func main() {
 		log.Fatal("auth token for interaction with backend service is empty")
 	}
 
-	cfg, err := PopulateConfig()
+	cfg, err := config.PopulateConfig()
 	if err != nil {
 		log.WithError(err).Fatal("failed to populate configuration")
 	}
@@ -84,6 +86,17 @@ func main() {
 	db := conn.Database(cfg.DbName)
 	log.Info("successfully connected to db")
 
+	agent, err := consul.NewAgent(cfg)
+	if err != nil {
+		log.WithError(err).Fatal("failed to start consul agent")
+	}
+
+	log.Info("creating http server and endpoint...")
+	s := server.NewServer(agent)
+	chatStorage := storages.NewChatStorage(ctx, db)
+	s.MountRoutes("/chats", endpoints.GetChatsRoutes(chatStorage))
+	s.MountRoutes("/messages", endpoints.GetMessagesRoutes(storages.NewMessageStorage(ctx, db), chatStorage))
+
 	// Create the interruption channel end lock until it gets interruption signal from OS
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGKILL, syscall.SIGINT, syscall.SIGTERM)
@@ -93,14 +106,12 @@ func main() {
 		log.Infof("received the %+v call, shutting down", sig)
 		cancel()
 		signal.Stop(c)
+		s.Shutdown()
 	}()
 
-	log.Info("creating http server and endpoint...")
-	s := server.NewServer(ctx, cfg.ServerPort)
-	chatStorage := storages.NewChatStorage(ctx, db)
-	s.MountRoutes("/chats", endpoints.GetChatsRoutes(chatStorage))
-	s.MountRoutes("/messages", endpoints.GetMessagesRoutes(storages.NewMessageStorage(ctx, db), chatStorage))
 	log.Info("running http server...")
-	s.Serve()
-
+	if err = s.Serve(cfg.ServicePort); err != nil && err != http.ErrServerClosed {
+		_ = agent.Unregister()
+		log.WithError(err).Error("failed to serve")
+	}
 }

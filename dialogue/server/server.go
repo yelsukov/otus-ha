@@ -9,13 +9,14 @@ import (
 	"github.com/go-chi/chi/middleware"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/yelsukov/otus-ha/dialogue/domain/entities"
 	"github.com/yelsukov/otus-ha/dialogue/vars"
 )
 
 type Server struct {
-	ctx  context.Context
-	mux  *chi.Mux
-	port string
+	mux *chi.Mux
+	ca  entities.ConsulAgent
+	hs  *http.Server
 }
 
 func InitMiddlewares(mux *chi.Mux) *chi.Mux {
@@ -33,7 +34,6 @@ func InitMiddlewares(mux *chi.Mux) *chi.Mux {
 				next.ServeHTTP(w, r)
 			})
 		},
-		authMiddleware,
 	)
 
 	mux.NotFound(func(w http.ResponseWriter, r *http.Request) {
@@ -49,14 +49,20 @@ func InitMiddlewares(mux *chi.Mux) *chi.Mux {
 		}
 	})
 
+	mux.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
+		if _, err := w.Write([]byte("pong")); err != nil {
+			log.WithError(err).Warn("failed to pong")
+		}
+	})
+
 	return mux
 }
 
-func NewServer(ctx context.Context, port string) *Server {
+func NewServer(ca entities.ConsulAgent) *Server {
 	return &Server{
-		ctx,
 		InitMiddlewares(chi.NewRouter()),
-		port,
+		ca,
+		nil,
 	}
 }
 
@@ -64,30 +70,40 @@ func (s *Server) MountRoutes(pattern string, router *chi.Mux) {
 	s.mux.Mount(pattern, router)
 }
 
-func (s *Server) Serve() {
-	server := http.Server{
-		Addr:         ":" + s.port,
+func (s *Server) Serve(port string) error {
+	s.hs = &http.Server{
+		Addr:         ":" + port,
 		Handler:      s.mux,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  time.Minute,
 	}
 
-	go func(s *http.Server) {
-		err := s.ListenAndServe()
-		log.WithError(err).Error("fail of listen and serve")
-	}(&server)
+	log.Info("registering service at consul")
+	if err := s.ca.Register(); err != nil {
+		return err
+	}
 
-	log.Info("http server started on port " + s.port)
+	log.Info("http server listening on port " + port)
+	err := s.hs.ListenAndServe()
+	if err != http.ErrServerClosed {
+		return err
+	}
 
-	// Got gracefully shut down the http server
-	<-s.ctx.Done()
+	return err
+}
 
+func (s *Server) Shutdown() {
 	log.Printf("shut down the http server")
+	if err := s.ca.Unregister(); err != nil {
+		log.WithError(err).Error("failed to unregister service from consul")
+	}
+
 	ctxShutDown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer func() { cancel() }()
-	if err := server.Shutdown(ctxShutDown); err != nil {
+	if err := s.hs.Shutdown(ctxShutDown); err != nil {
 		log.WithError(err).Fatal("server shutdown failed")
+	} else {
+		log.Printf("server stopped properly")
 	}
-	log.Printf("server stopped properly")
 }

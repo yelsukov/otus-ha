@@ -62,7 +62,7 @@ func (s *Server) setupRoutes() {
 				next.ServeHTTP(w, r)
 			})
 		})
-		r.Mount("/v1", v1.InitApiMux(s.db, s.tt, s.bus, s.cfg))
+		r.Mount("/v1", v1.InitApiMux(s.ctx, s.db, s.tt, s.bus, s.cfg))
 	})
 
 	s.mux.NotFound(func(w http.ResponseWriter, r *http.Request) {

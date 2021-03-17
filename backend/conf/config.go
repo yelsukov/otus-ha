@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -47,7 +48,10 @@ type Config struct {
 	NewsServiceUrl   string
 
 	DialogueServiceToken string
-	DialogueServiceUrl   string
+	DialogueServiceName  string
+	DialogueServiceHosts []string
+
+	ConsulDsn string
 
 	ServerPort     string
 	RequestTimeout time.Duration // in seconds
@@ -133,11 +137,18 @@ func PopulateConfig() (*Config, error) {
 	if cfg.DialogueServiceToken, exist = os.LookupEnv("DIALOG_TOKEN"); !exist {
 		return nil, errors.New("ENV `DIALOG_TOKEN` should be specified")
 	}
-	if cfg.DialogueServiceUrl, exist = os.LookupEnv("DIALOG_URL"); !exist {
-		return nil, errors.New("ENV `DIALOG_URL` should be specified")
+	if cfg.DialogueServiceName, exist = os.LookupEnv("DIALOG_NAME"); !exist {
+		return nil, errors.New("ENV `DIALOG_NAME` should be specified")
+	}
+	if hosts, exist := os.LookupEnv("DIALOG_HOSTS"); exist && len(hosts) != 0 {
+		cfg.DialogueServiceHosts = strings.Split(hosts, ",")
+	} else {
+		return nil, errors.New("ENV `DIALOG_HOSTS` should be specified")
 	}
 
 	cfg.RequestTimeout = defaultReqTimeout
+
+	cfg.ConsulDsn = os.Getenv("CONSUL_DSN")
 
 	tmp, exist := os.LookupEnv("DEBUG")
 	cfg.DebugMode = exist && tmp == "true"

@@ -16,6 +16,7 @@ import (
 
 func GetChatsRoutes(storage storages.ChatStorage) *chi.Mux {
 	r := chi.NewRouter()
+	r.Use(authMiddleware)
 	r.Get("/", fetchChats(storage))
 	r.Get("/{cid:[0-9a-z]+}", getChat(storage))
 	r.Post("/", createChat(storage))

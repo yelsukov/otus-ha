@@ -115,8 +115,8 @@ services:
     networks:
       - dlg
 
-  dialogue:
-    container_name: "dialogue"
+  dialogue01:
+    container_name: dialogue01
     build:
       context: dialogue
       args:
@@ -129,13 +129,42 @@ services:
       MONGO_DSN: "mongodb://mongoRouter:27017"
       DB_NAME: "${DB_NAME}"
       DEBUG: "${DEBUG}"
-      SERVER_PORT: "${DIALOG_PORT}"
+      SERVICE_ID: "dialogue01"
+      SERVICE_NAME: "dialogue"
+      SERVICE_HOST: "dialogue01"
+      SERVICE_PORT: "${DIALOG_PORT}"
+      CONSUL_DSN: "consul:8500"
     depends_on:
       - sharder
     networks:
       - dlg
       - inner
 
+  dialogue02:
+    container_name: dialogue02
+    build:
+      context: dialogue
+      args:
+        TOKEN: "${DIALOG_TOKEN}"
+        VERSION: "0.0.2"
+    restart: always
+    ports:
+      - 8010:${DIALOG_PORT}
+    environment:
+      MONGO_DSN: "mongodb://mongoRouter:27017"
+      DB_NAME: "${DB_NAME}"
+      DEBUG: "${DEBUG}"
+      SERVICE_ID: "dialogue02"
+      SERVICE_NAME: "dialogue"
+      SERVICE_HOST: "dialogue02"
+      SERVICE_PORT: "${DIALOG_PORT}"
+      CONSUL_DSN: "consul:8500"
+    depends_on:
+      dialogue01:
+        condition: service_started
+    networks:
+      - dlg
+      - inner
 
 networks:
   dlg:
