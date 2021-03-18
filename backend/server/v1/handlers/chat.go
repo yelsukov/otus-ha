@@ -37,12 +37,7 @@ func FetchChats(provider dialogueProvider) http.HandlerFunc {
 func GetChat(provider dialogueProvider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uid := r.Context().Value("currentUserId").(int64)
-
 		cid := chi.URLParam(r, "cid")
-		if cid == "" {
-			responses.ResponseWithError(w, errors.New("4001", "invalid chat id"))
-			return
-		}
 
 		chat, err := provider.GetChat(r.Context(), int(uid), cid)
 		if err != nil {
@@ -135,12 +130,14 @@ func FetchMessages(provider dialogueProvider) http.HandlerFunc {
 func SendMessages(provider dialogueProvider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uid := r.Context().Value("currentUserId").(int64)
+		cid := chi.URLParam(r, "cid")
 
 		var body dialogue.PostMessageBody
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			responses.ResponseWithError(w, errors.New("4000", "invalid JSON payload"))
 			return
 		}
+		body.ChatId = cid
 		body.UserId = int(uid)
 		message, err := provider.CreateMessage(r.Context(), body)
 		if err != nil {

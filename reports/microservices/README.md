@@ -203,7 +203,7 @@ NoSQL база данных, используется сервисом ново�
 
 **4. Отсылаем сообщение от `tester` к `tester2`:**
 
-> curl -XPOST http://127.0.0.1:8007/v1/chats/604f50945ace0bc016c02739/messages -d '{"cid":"604f565622f02d3663a43d3b", "txt":"Hello, tester2"}' -H "Authorization:Bearer JWT_OF_TESTER"
+> curl -XPOST http://127.0.0.1:8007/v1/chats/604f50945ace0bc016c02739/messages -d '{"txt":"Hello, tester2"}' -H "Authorization:Bearer JWT_OF_TESTER"
 
 ```json
 {
@@ -218,7 +218,7 @@ NoSQL база данных, используется сервисом ново�
 
 **5. Отвечаем от `tester2` к `tester`:**
 
-> curl -XPOST http://127.0.0.1:8007/v1/chats/604f50945ace0bc016c02739/messages -d '{"cid":"604f565622f02d3663a43d3b", "txt":"Hi, tester. How are you?"}' -H "Authorization:Bearer JWT_OF_TESTER2"
+> curl -XPOST http://127.0.0.1:8007/v1/chats/604f50945ace0bc016c02739/messages -d '{"txt":"Hi, tester. How are you?"}' -H "Authorization:Bearer JWT_OF_TESTER2"
 
 ```json
 {

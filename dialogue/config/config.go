@@ -9,7 +9,7 @@ const (
 	defDbName      = "otus"
 	defServiceName = "dialogue"
 	defServiceId   = "dialogue"
-	defServiceHost = "dialogue"
+	defServiceHost = "http://dialogue"
 	defServicePort = "8081"
 	defConsulDsn   = "consul"
 )

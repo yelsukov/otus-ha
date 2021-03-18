@@ -131,7 +131,7 @@ services:
       DEBUG: "${DEBUG}"
       SERVICE_ID: "dialogue01"
       SERVICE_NAME: "dialogue"
-      SERVICE_HOST: "dialogue01"
+      SERVICE_HOST: "http://dialogue01"
       SERVICE_PORT: "${DIALOG_PORT}"
       CONSUL_DSN: "consul:8500"
     depends_on:
@@ -156,7 +156,7 @@ services:
       DEBUG: "${DEBUG}"
       SERVICE_ID: "dialogue02"
       SERVICE_NAME: "dialogue"
-      SERVICE_HOST: "dialogue02"
+      SERVICE_HOST: "http://dialogue02"
       SERVICE_PORT: "${DIALOG_PORT}"
       CONSUL_DSN: "consul:8500"
     depends_on:

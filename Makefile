@@ -55,6 +55,12 @@ startMonitor:
 stopMonitor:
 	sudo docker-compose -f deployment/monitoring/docker-compose.yml down -v --rmi=local
 
+upWithConsul:
+	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml up --build -d
+
+downWithConsul:
+	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml down -v
+
 fmt:
 	@echo "+ $@"
 	@goimports -w -l src

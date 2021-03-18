@@ -36,7 +36,7 @@ func (a *Agent) Register() error {
 		Check: &api.AgentServiceCheck{
 			Interval: "5s",
 			Timeout:  "2s",
-			HTTP:     "http://" + a.cfg.ServiceHost + ":" + a.cfg.ServicePort + "/ping",
+			HTTP:     a.cfg.ServiceHost + ":" + a.cfg.ServicePort + "/ping",
 		},
 	})
 
