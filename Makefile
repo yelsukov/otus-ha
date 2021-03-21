@@ -44,22 +44,22 @@ stopTaran:
 	sudo docker-compose -f docker-compose.tarantool.yml -f docker-compose.queue.yml down -v
 
 upCluster:
-	sudo docker-compose -f docker-compose.cluster.yml -f docker-compose.haproxy.yml -f docker-compose.queue.yml up --build -d
+	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.cluster.yml -f docker-compose.haproxy.yml -f docker-compose.queue.yml up --build -d
 
 downCluster:
-	sudo docker-compose -f docker-compose.cluster.yml -f docker-compose.haproxy.yml -f docker-compose.queue.yml down -v
-
-startMonitor:
-	sudo docker-compose -f deployment/monitoring/docker-compose.yml up --build -d
-
-stopMonitor:
-	sudo docker-compose -f deployment/monitoring/docker-compose.yml down -v --rmi=local
+	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.cluster.yml -f docker-compose.haproxy.yml -f docker-compose.queue.yml down -v
 
 upWithConsul:
 	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml up --build -d
 
 downWithConsul:
 	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml down -v
+
+upWithMonitoring:
+	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.monitoring.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml up --build -d
+
+downWithMonitoring:
+	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.monitoring.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml down -v
 
 fmt:
 	@echo "+ $@"

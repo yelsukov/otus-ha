@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/yelsukov/otus-ha/dialogue/zabbix"
 	"net/http"
 	"os"
 	"os/signal"
@@ -64,11 +65,16 @@ func main() {
 	if err != nil {
 		log.WithError(err).Fatal("failed to populate configuration")
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
 	if cfg.DebugMode {
 		log.SetLevel(log.DebugLevel)
 	}
-
-	ctx, cancel := context.WithCancel(context.Background())
+	if cfg.ZabbixHost != "" && cfg.ZabbixPort != 0 {
+		log.Info("running metrics observer")
+		go zabbix.ObserveMetrics(ctx, cfg)
+	}
 
 	log.Info("connecting to db...")
 	conn, err := establishDbConn(ctx, cfg.MongoDSN)

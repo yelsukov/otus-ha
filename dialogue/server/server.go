@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/yelsukov/otus-ha/dialogue/domain/entities"
@@ -34,6 +35,7 @@ func InitMiddlewares(mux *chi.Mux) *chi.Mux {
 				next.ServeHTTP(w, r)
 			})
 		},
+		PrometheusMetrics,
 	)
 
 	mux.NotFound(func(w http.ResponseWriter, r *http.Request) {
@@ -54,6 +56,17 @@ func InitMiddlewares(mux *chi.Mux) *chi.Mux {
 			log.WithError(err).Warn("failed to pong")
 		}
 	})
+
+	// Always return 500. Wee need it to show demo with RED metrics at grafana
+	mux.Get("/breakMeCompletely", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(500)
+		if _, err := w.Write([]byte("Oh yeah! I'm feeling broken")); err != nil {
+			log.WithError(err).Warn("failed to feel broken")
+		}
+	})
+
+	// add prometheus metrics handler
+	mux.Handle("/metrics", promhttp.Handler())
 
 	return mux
 }

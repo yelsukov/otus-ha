@@ -16,7 +16,7 @@ import (
 
 func GetMessagesRoutes(msgStorage storages.MessageStorage, chtStorage storages.ChatStorage) *chi.Mux {
 	r := chi.NewRouter()
-	r.Use(authMiddleware)
+	r.Use(server.AuthMiddleware)
 	r.Get("/", fetchMessages(msgStorage, chtStorage))
 	r.Post("/", createMessage(msgStorage, chtStorage))
 	return r

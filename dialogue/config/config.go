@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"os"
+	"strconv"
 )
 
 const (
@@ -25,6 +26,10 @@ type Config struct {
 	ServicePort string
 
 	ConsulDsn string
+
+	ZabbixName string
+	ZabbixHost string
+	ZabbixPort int
 
 	DebugMode bool
 }
@@ -57,6 +62,12 @@ func PopulateConfig() (*Config, error) {
 
 	if cfg.ConsulDsn, exist = os.LookupEnv("CONSUL_DSN"); !exist {
 		cfg.ConsulDsn = defConsulDsn
+	}
+
+	cfg.ZabbixName = os.Getenv("ZBX_NAME")
+	cfg.ZabbixHost = os.Getenv("ZBX_HOST")
+	if zbxPort := os.Getenv("ZBX_PORT"); zbxPort != "" {
+		cfg.ZabbixPort, _ = strconv.Atoi(zbxPort)
 	}
 
 	tmp, exist := os.LookupEnv("DEBUG")

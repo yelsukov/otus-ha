@@ -2,12 +2,12 @@ package endpoints
 
 import (
 	"encoding/json"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/yelsukov/otus-ha/dialogue/domain/entities"
 	"github.com/yelsukov/otus-ha/dialogue/domain/storages"
@@ -16,7 +16,7 @@ import (
 
 func GetChatsRoutes(storage storages.ChatStorage) *chi.Mux {
 	r := chi.NewRouter()
-	r.Use(authMiddleware)
+	r.Use(server.AuthMiddleware)
 	r.Get("/", fetchChats(storage))
 	r.Get("/{cid:[0-9a-z]+}", getChat(storage))
 	r.Post("/", createChat(storage))
