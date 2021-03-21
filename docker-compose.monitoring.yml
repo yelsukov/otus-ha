@@ -2,7 +2,7 @@ version: '2.4'
 services:
   postgres:
     container_name: postgres
-    image: postgres:12-alpine
+    image: postgres:13.2-alpine
     environment:
       POSTGRES_USER: zabbix_user
       POSTGRES_PASSWORD: zabbix_pass
