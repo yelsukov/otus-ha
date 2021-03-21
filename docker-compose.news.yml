@@ -38,7 +38,7 @@ services:
         VERSION: "0.0.1"
     restart: always
     ports:
-      - 8010:${NEWS_PORT}
+      - 8011:${NEWS_PORT}
     environment:
       DB_NAME: "${DB_NAME}"
       MONGO_DSN: "mongodb://mongodb:27017"

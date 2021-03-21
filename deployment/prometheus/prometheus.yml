@@ -1,0 +1,24 @@
+global:
+  scrape_interval: 5s # By default, scrape targets every 5 seconds.
+
+  # Attach these labels to any time series or alerts when communicating with
+  # external systems (federation, remote storage, Alertmanager).
+  external_labels:
+    monitor: 'dialogue'
+
+# A scrape configuration containing exactly one endpoint to scrape:
+scrape_configs:
+  - job_name: 'dialogue01'
+    static_configs:
+      - targets: [ 'dialogue01:8080' ]
+        labels:
+          dc: "dc1"
+          hostname: "dialogue01"
+          service: "dialogue"
+  - job_name: 'dialogue02'
+    static_configs:
+      - targets: [ 'dialogue02:8080' ]
+        labels:
+          dc: "dc1"
+          hostname: "dialogue02"
+          service: "dialogue"

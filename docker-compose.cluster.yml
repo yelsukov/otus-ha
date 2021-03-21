@@ -1,6 +1,16 @@
 version: '2.4'
 
 services:
+  consul:
+    image: consul:1.9.4
+    container_name: consul
+    command: agent -server -ui -node=otus -bootstrap-expect=1 -client=0.0.0.0
+    networks:
+      - inner
+    ports:
+      - 8500:8500
+      - 8600:8600/udp
+
   node01:
     container_name: "node01"
     build:
@@ -18,7 +28,9 @@ services:
       NEWS_TOKEN: "${NEWS_TOKEN}"
       NEWS_URL: "news:${NEWS_PORT}"
       DIALOG_TOKEN: "${DIALOG_TOKEN}"
-      DIALOG_URL: "http://dialogue:${DIALOG_PORT}"
+      DIALOG_NAME: "dialogue"
+      DIALOG_HOSTS: "http://dialogue01:${DIALOG_PORT},http://dialogue02:${DIALOG_PORT}"
+      CONSUL_DSN: "consul:8500"
       MIGRATIONS_HOST: "master_db"
       MIGRATIONS_USER: "${MASTER_USER}"
       MIGRATIONS_PASS: "${MASTER_PASSWORD}"
@@ -45,7 +57,9 @@ services:
       NEWS_TOKEN: "${NEWS_TOKEN}"
       NEWS_URL: "news:${NEWS_PORT}"
       DIALOG_TOKEN: "${DIALOG_TOKEN}"
-      DIALOG_URL: "http://dialogue:${DIALOG_PORT}"
+      DIALOG_NAME: "dialogue"
+      DIALOG_HOSTS: "http://dialogue01:${DIALOG_PORT},http://dialogue02:${DIALOG_PORT}"
+      CONSUL_DSN: "consul:8500"
       SLAVE: "true"
     depends_on:
       - node01

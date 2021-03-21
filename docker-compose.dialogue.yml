@@ -134,6 +134,9 @@ services:
       SERVICE_HOST: "http://dialogue01"
       SERVICE_PORT: "${DIALOG_PORT}"
       CONSUL_DSN: "consul:8500"
+      ZBX_HOST: "zabbix-server"
+      ZBX_PORT: 10051
+      ZBX_NAME: "Zabbix server"
     depends_on:
       - sharder
     networks:
@@ -159,6 +162,9 @@ services:
       SERVICE_HOST: "http://dialogue02"
       SERVICE_PORT: "${DIALOG_PORT}"
       CONSUL_DSN: "consul:8500"
+      ZBX_HOST: "zabbix-server"
+      ZBX_PORT: 10051
+      ZBX_NAME: "Zabbix server"
     depends_on:
       dialogue01:
         condition: service_started
@@ -169,7 +175,7 @@ services:
 networks:
   dlg:
     name: dlg
-    internal: true
+
   inner:
     name: inner
     external: true

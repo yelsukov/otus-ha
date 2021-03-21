@@ -77,7 +77,7 @@
   mongo кластере;
 - mongoConfig и mongoRouter, официальный образ mongo:4.4.3, сервер конфигурации кластера и сервер маршрутизации запросов
   по кластеру;
-- sharder, [Dockerfile](../../deployment/sharedCluster), сервис после-стартовой настройки mongo кластера;
+- sharder, [Dockerfile](../../deployment/sharedCluster/Dockerfile), сервис после-стартовой настройки mongo кластера;
 - dialogue01 и dialogue01, [Dockerfile](../../dialogue/Dockerfile), инстансы сервиса диалогов.
 
 **Networks:**
@@ -127,7 +127,7 @@
 - [Актуализация доступных узлов](../../backend/balancer/service.go#L42)
 - [Выбор узла и отправка запроса](../../backend/providers/dialogue/dialogue.go#L25)
 
-<a name="testsing"></a>
+<a name="testing"></a>
 
 ## Тестирование
 

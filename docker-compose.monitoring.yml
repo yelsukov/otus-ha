@@ -1,0 +1,71 @@
+version: '2.4'
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:12-alpine
+    environment:
+      POSTGRES_USER: zabbix_user
+      POSTGRES_PASSWORD: zabbix_pass
+      POSTGRES_DB: zabbix
+    networks:
+      - zabbix
+
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql:alpine-latest
+    container_name: zabbix-server
+    environment:
+      DB_SERVER_HOST: postgres
+      POSTGRES_USER: zabbix_user
+      POSTGRES_PASSWORD: zabbix_pass
+    depends_on:
+      - postgres
+    networks:
+      - zabbix
+      - inner
+
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-pgsql:alpine-latest
+    container_name: zabbix-web
+    environment:
+      - DB_SERVER_HOST=postgres
+      - POSTGRES_USER=zabbix_user
+      - POSTGRES_PASSWORD=zabbix_pass
+      - ZBX_SERVER_HOST=zabbix-server
+    ports:
+      - 8081:8080
+    depends_on:
+      - zabbix-server
+    networks:
+      - zabbix
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./deployment/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - inner
+      - prometheus
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    volumes:
+      - ./deployment/grafana/dashboards:/var/lib/grafana/dashboards
+      - ./deployment/grafana/provisioning:/etc/grafana/provisioning
+      - ./deployment/grafana/config.ini:/etc/grafana/config.ini
+    ports:
+      - 3000:3000
+    networks:
+      - prometheus
+    depends_on:
+      - prometheus
+
+networks:
+  zabbix:
+    name: zabbix
+  prometheus:
+    name: prometheus
+  inner:
+    name: inner
+    external: true
