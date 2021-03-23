@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"github.com/yelsukov/otus-ha/dialogue/zabbix"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,12 +13,17 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 
+	"github.com/yelsukov/otus-ha/dialogue/cache"
 	"github.com/yelsukov/otus-ha/dialogue/config"
 	"github.com/yelsukov/otus-ha/dialogue/consul"
+	"github.com/yelsukov/otus-ha/dialogue/saga"
+	"github.com/yelsukov/otus-ha/dialogue/saga/queues/kafka"
+	"github.com/yelsukov/otus-ha/dialogue/saga/storages/redis"
 	"github.com/yelsukov/otus-ha/dialogue/server"
 	"github.com/yelsukov/otus-ha/dialogue/server/endpoints"
 	"github.com/yelsukov/otus-ha/dialogue/storages"
 	"github.com/yelsukov/otus-ha/dialogue/vars"
+	"github.com/yelsukov/otus-ha/dialogue/zabbix"
 )
 
 func establishDbConn(ctx context.Context, dsn string) (*mongo.Client, error) {
@@ -97,11 +101,25 @@ func main() {
 		log.WithError(err).Fatal("failed to start consul agent")
 	}
 
+	log.Info("connecting to redis...", cfg.RedisDsn)
+	clientRedis, err := cache.Connect(ctx, cfg.RedisDsn, cfg.RedisPass)
+	if err != nil {
+		log.WithError(err).Error("failed to connect to redis")
+	} else {
+		log.Info("successfully connected to redis")
+	}
+
+	log.Info("starting saga orchestrator...")
+	queue := kafka.NewListener(cfg.KafkaBrokers, "dialogue")
+	sgStore := redis.NewSagaStorageRedis(clientRedis)
+	sagaOrc := saga.NewOrchestrator(sgStore, queue)
+	sagaOrc.Start(ctx)
+
 	log.Info("creating http server and endpoint...")
 	s := server.NewServer(agent)
 	chatStorage := storages.NewChatStorage(ctx, db)
-	s.MountRoutes("/chats", endpoints.GetChatsRoutes(chatStorage))
-	s.MountRoutes("/messages", endpoints.GetMessagesRoutes(storages.NewMessageStorage(ctx, db), chatStorage))
+	s.MountRoutes("/chats", endpoints.GetChatsRoutes(chatStorage, clientRedis))
+	s.MountRoutes("/messages", endpoints.GetMessagesRoutes(storages.NewMessageStorage(ctx, db), chatStorage, sagaOrc))
 
 	// Create the interruption channel end lock until it gets interruption signal from OS
 	c := make(chan os.Signal, 1)
@@ -112,6 +130,13 @@ func main() {
 		log.Infof("received the %+v call, shutting down", sig)
 		cancel()
 		signal.Stop(c)
+		if clientRedis != nil {
+			log.Info("disconnecting from the redis...")
+			if err = clientRedis.Close(); err != nil {
+				log.WithError(err).Error("failed to close redis connection")
+			}
+		}
+		queue.Close()
 		s.Shutdown()
 	}()
 

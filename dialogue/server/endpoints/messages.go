@@ -1,11 +1,14 @@
 package endpoints
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi"
+	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 
@@ -14,11 +17,12 @@ import (
 	"github.com/yelsukov/otus-ha/dialogue/server"
 )
 
-func GetMessagesRoutes(msgStorage storages.MessageStorage, chtStorage storages.ChatStorage) *chi.Mux {
+func GetMessagesRoutes(msgStorage storages.MessageStorage, chtStorage storages.ChatStorage, sagaOrc entities.SagaOrchestrator) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(server.AuthMiddleware)
-	r.Get("/", fetchMessages(msgStorage, chtStorage))
-	r.Post("/", createMessage(msgStorage, chtStorage))
+
+	r.Get("/", fetchMessages(msgStorage, chtStorage, sagaOrc))
+	r.Post("/", createMessage(msgStorage, chtStorage, sagaOrc))
 	return r
 }
 
@@ -36,7 +40,7 @@ func prepareMessageList(messages []entities.Message) *[]messageResponse {
 	return &list
 }
 
-func fetchMessages(ms storages.MessageStorage, cs storages.ChatStorage) http.HandlerFunc {
+func fetchMessages(ms storages.MessageStorage, cs storages.ChatStorage, so entities.SagaOrchestrator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uid, err := strconv.Atoi(r.URL.Query().Get("uid"))
 		if err != nil {
@@ -82,6 +86,33 @@ func fetchMessages(ms storages.MessageStorage, cs storages.ChatStorage) http.Han
 		}
 
 		server.ResponseWithList(w, prepareMessageList(messages))
+
+		if !so.IsActive() {
+			return
+		}
+		unread := make([]string, 10)
+		for _, m := range messages {
+			if m.UserId != uid && !m.Read {
+				unread = append(unread, m.Id.String())
+			}
+		}
+		if len(unread) == 0 {
+			return
+		}
+
+		err = so.ExecuteSaga(context.Background(), &entities.Saga{
+			Id:        "read-msg-" + strconv.Itoa(time.Now().Nanosecond()),
+			DialogTrx: entities.DialogTrx{MessagesIds: unread},
+			CounterTrx: entities.CounterTrx{
+				Command: "dec",
+				ChatId:  chat.Id.String(),
+				UserId:  uid,
+				Num:     1,
+			},
+		})
+		if err != nil {
+			log.WithError(err).Error("failed to execute saga")
+		}
 	}
 }
 
@@ -91,7 +122,7 @@ type postMessageBody struct {
 	Text   string             `json:"txt"`
 }
 
-func createMessage(ms storages.MessageStorage, cs storages.ChatStorage) http.HandlerFunc {
+func createMessage(ms storages.MessageStorage, cs storages.ChatStorage, so entities.SagaOrchestrator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body postMessageBody
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -120,11 +151,32 @@ func createMessage(ms storages.MessageStorage, cs storages.ChatStorage) http.Han
 			Text:   body.Text,
 		}
 
-		if err := ms.InsertOne(&message); err != nil {
+		if err = ms.InsertOne(&message); err != nil {
 			server.ResponseWithError(w, err)
 			return
 		}
 
 		server.ResponseWithOk(w, &messageResponse{"message", &message})
+
+		if !so.IsActive() {
+			return
+		}
+		users := chat.UsersExceptOne(message.UserId)
+		if users == nil {
+			log.Warnf("message user %d not found in chat %s", message.UserId, chat.Id)
+			return
+		}
+		err = so.ExecuteSaga(context.Background(), &entities.Saga{
+			Id: "new-msg-" + strconv.Itoa(time.Now().Nanosecond()),
+			CounterTrx: entities.CounterTrx{
+				Command: "incr",
+				ChatId:  message.ChatId.String(),
+				UserId:  users[0],
+				Num:     1,
+			},
+		})
+		if err != nil {
+			log.WithError(err).Error("failed to execute saga")
+		}
 	}
 }

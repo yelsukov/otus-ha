@@ -31,6 +31,11 @@ type Config struct {
 	ZabbixHost string
 	ZabbixPort int
 
+	RedisDsn  string
+	RedisPass string
+
+	KafkaBrokers string
+
 	DebugMode bool
 }
 

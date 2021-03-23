@@ -1,9 +1,11 @@
 package endpoints
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -14,11 +16,11 @@ import (
 	"github.com/yelsukov/otus-ha/dialogue/server"
 )
 
-func GetChatsRoutes(storage storages.ChatStorage) *chi.Mux {
+func GetChatsRoutes(storage storages.ChatStorage, redis entities.RedisClient) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(server.AuthMiddleware)
-	r.Get("/", fetchChats(storage))
-	r.Get("/{cid:[0-9a-z]+}", getChat(storage))
+	r.Get("/", fetchChats(storage, redis))
+	r.Get("/{cid:[0-9a-z]+}", getChat(storage, redis))
 	r.Post("/", createChat(storage))
 	r.Put("/{cid:[0-9a-z]+}", addUsers(storage))
 	return r
@@ -37,9 +39,9 @@ func prepareChatsList(chats []entities.Chat) *[]chatResponse {
 	return &list
 }
 
-func fetchChats(s storages.ChatStorage) http.HandlerFunc {
+func fetchChats(s storages.ChatStorage, redis entities.RedisClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userId, err := strconv.Atoi(r.URL.Query().Get("uid"))
+		uid, err := strconv.Atoi(r.URL.Query().Get("uid"))
 		if err != nil {
 			server.ResponseWithError(w, entities.NewError("4000", "user id is invalid"))
 			return
@@ -58,17 +60,23 @@ func fetchChats(s storages.ChatStorage) http.HandlerFunc {
 			limit, _ = strconv.Atoi(strLimit)
 		}
 
-		chats, err := s.ReadMany(userId, &lastId, uint32(limit))
+		chats, err := s.ReadMany(uid, &lastId, uint32(limit))
 		if err != nil {
 			server.ResponseWithError(w, err)
 			return
 		}
 
+		if redis != nil {
+			// TODO stupid idea but fast realisation. Think how to improve it
+			for _, chat := range chats {
+				setUnreadNum(&chat, uid, redis)
+			}
+		}
 		server.ResponseWithList(w, prepareChatsList(chats))
 	}
 }
 
-func getChat(s storages.ChatStorage) http.HandlerFunc {
+func getChat(s storages.ChatStorage, redis entities.RedisClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uid, err := strconv.Atoi(r.URL.Query().Get("uid"))
 		if err != nil {
@@ -92,6 +100,10 @@ func getChat(s storages.ChatStorage) http.HandlerFunc {
 		if !chat.HasUser(uid) {
 			server.ResponseWithError(w, entities.NewError("4031", "user do not belongs to chat"))
 			return
+		}
+
+		if redis != nil {
+			setUnreadNum(chat, uid, redis)
 		}
 
 		server.ResponseWithOk(w, &chatResponse{"chat", chat})
@@ -163,5 +175,13 @@ func addUsers(cs storages.ChatStorage) http.HandlerFunc {
 		}
 
 		server.ResponseWithOk(w, &chatResponse{"chat", chat})
+	}
+}
+
+func setUnreadNum(chat *entities.Chat, uid int, redis entities.RedisClient) {
+	redisCtx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
+	defer cancel()
+	if cnt, err := redis.Get(redisCtx, "chat:"+chat.Id.String()+":"+strconv.Itoa(uid)).Result(); err == nil {
+		chat.Unread, _ = strconv.Atoi(cnt)
 	}
 }

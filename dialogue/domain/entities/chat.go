@@ -9,6 +9,7 @@ import (
 type Chat struct {
 	Id        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	Users     []int              `bson:"users" json:"users"`
+	Unread    int                `bson:"-" json:"unread"`
 	CreatedAt int64              `bson:"ts" json:"createdAt"`
 }
 
@@ -31,6 +32,22 @@ func (c *Chat) HasUser(uid int) bool {
 		}
 	}
 	return false
+}
+
+func (c *Chat) UsersExceptOne(uid int) []int {
+	users := make([]int, len(c.Users))
+	pos := -1
+	for i, u := range c.Users {
+		if u == uid {
+			pos = i
+			break
+		}
+	}
+	if pos == -1 {
+		return nil
+	}
+	copy(users, c.Users)
+	return append(users[:pos], users[pos+1:]...)
 }
 
 // Unique removes duplicate elements from data. It assumes sort.IsSorted(data).

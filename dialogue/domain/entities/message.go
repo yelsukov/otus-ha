@@ -11,6 +11,7 @@ type Message struct {
 	UserId    int                `bson:"aid" json:"uid"`
 	CreatedAt int64              `bson:"ts" json:"createdAt"`
 	Text      string             `bson:"txt" json:"text"`
+	Read      bool               `bson:"rdn" json:"-"`
 }
 
 func (m *Message) Validate() error {
