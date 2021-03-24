@@ -12,14 +12,13 @@ import (
 )
 
 type Orchestrator struct {
-	store      storages.Storage
-	queue      queues.Queue
-	active     bool
-	compensate func(sg *entities.Saga) error
+	store  storages.Storage
+	queue  queues.Queue
+	active bool
 }
 
 func NewOrchestrator(store storages.Storage, queue queues.Queue) *Orchestrator {
-	return &Orchestrator{store, queue, false, nil}
+	return &Orchestrator{store, queue, false}
 }
 
 func (o *Orchestrator) IsActive() bool {
@@ -63,7 +62,11 @@ func (o *Orchestrator) commitSaga(saga *entities.Saga) {
 
 func (o *Orchestrator) rollbackSaga(saga *entities.Saga) {
 	log.Infof("rolling back saga %s", saga.Id)
-	if err := o.compensate(saga); err != nil {
+	if saga.Compensate == nil {
+		log.Infof("saga %s have no compensation", saga.Id)
+		return
+	}
+	if err := saga.Compensate(saga); err != nil {
 		log.WithError(err).Errorf("Failed to compensate local trx for saga %s", saga.Id)
 		return
 	}

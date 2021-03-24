@@ -100,6 +100,11 @@ func fetchMessages(ms storages.MessageStorage, cs storages.ChatStorage, so entit
 			return
 		}
 
+		num, err := ms.SetReadFlag(unread, true)
+		if err != nil {
+			log.WithError(err).Error("failed to update read flag for messages")
+			return
+		}
 		err = so.ExecuteSaga(context.Background(), &entities.Saga{
 			Id:        "read-msg-" + strconv.Itoa(time.Now().Nanosecond()),
 			DialogTrx: entities.DialogTrx{MessagesIds: unread},
@@ -107,7 +112,12 @@ func fetchMessages(ms storages.MessageStorage, cs storages.ChatStorage, so entit
 				Command: "dec",
 				ChatId:  chat.Id.String(),
 				UserId:  uid,
-				Num:     1,
+				Num:     uint(num),
+			},
+			// Compensate transaction for Read flag update
+			Compensate: func(s *entities.Saga) error {
+				_, err := ms.SetReadFlag(s.DialogTrx.MessagesIds, false)
+				return err
 			},
 		})
 		if err != nil {

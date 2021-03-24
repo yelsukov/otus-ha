@@ -64,3 +64,14 @@ func (m *MessageStorage) ReadMany(chatId, lastId *primitive.ObjectID, limit uint
 
 	return messages, nil
 }
+
+func (m *MessageStorage) SetReadFlag(ids []string, flag bool) (int64, error) {
+	res, err := m.col.UpdateMany(m.ctx,
+		bson.M{"_id": bson.M{"$in": ids}},
+		bson.M{"$set": bson.M{"read": flag}},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return res.ModifiedCount, nil
+}

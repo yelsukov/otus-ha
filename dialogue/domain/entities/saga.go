@@ -19,6 +19,7 @@ type Saga struct {
 	Id         string `json:"-"`
 	DialogTrx  `json:"dlg,omitempty"`
 	CounterTrx `json:"ctr"`
+	Compensate func(sg *Saga) error `json:"-"`
 }
 
 type SagaOrchestrator interface {
