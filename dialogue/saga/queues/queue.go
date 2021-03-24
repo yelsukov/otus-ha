@@ -5,7 +5,7 @@ import (
 	"github.com/yelsukov/otus-ha/dialogue/domain/entities"
 )
 
-type Queue interface {
+type BusQueue interface {
 	Publish(ctx context.Context, sg *entities.Saga) error
 	Listen(ctx context.Context, consumeFunc func(message SagaInboundMessage))
 }

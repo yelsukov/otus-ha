@@ -137,10 +137,16 @@ services:
       ZBX_HOST: "zabbix-server"
       ZBX_PORT: 10051
       ZBX_NAME: "Zabbix server"
+      REDIS_DSN: "redis:6379"
+      QUEUE_DSN: "${BUS_DSN}"
+      DLG_TOPIC: "dialogueBus"
+      CNT_TOPIC: "counterBus"
     depends_on:
       - sharder
     networks:
       - dlg
+      - queue
+      - cache
       - inner
 
   dialogue02:
@@ -165,17 +171,43 @@ services:
       ZBX_HOST: "zabbix-server"
       ZBX_PORT: 10051
       ZBX_NAME: "Zabbix server"
+      REDIS_DSN: "redis:6379"
+      QUEUE_DSN: "${BUS_DSN}"
+      DLG_TOPIC: "dialogueBus"
+      CNT_TOPIC: "counterBus"
     depends_on:
       dialogue01:
         condition: service_started
     networks:
       - dlg
+      - queue
+      - cache
       - inner
+
+  counter:
+    container_name: counter
+    build:
+      context: counter
+    restart: on-failure
+    environment:
+      REDIS_DSN: "redis:6379"
+      QUEUE_DSN: "${BUS_DSN}"
+      DLG_TOPIC: "dialogueBus"
+      CNT_TOPIC: "counterBus"
+      DEBUG: "${DEBUG}"
+    networks:
+      - cache
+      - queue
 
 networks:
   dlg:
     name: dlg
-
+  cache:
+    name: cache
+    external: true
+  queue:
+    name: queue
+    external: true
   inner:
     name: inner
     external: true

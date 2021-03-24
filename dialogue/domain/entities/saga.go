@@ -4,22 +4,14 @@ import (
 	"context"
 )
 
-type DialogTrx struct {
-	MessagesIds []string `json:"ids"`
-}
-
-type CounterTrx struct {
-	Command string `json:"cmd"`
-	ChatId  string `json:"cid"`
-	UserId  int    `json:"uid"`
-	Num     uint   `json:"num"`
-}
-
 type Saga struct {
-	Id         string `json:"-"`
-	DialogTrx  `json:"dlg,omitempty"`
-	CounterTrx `json:"ctr"`
-	Compensate func(sg *Saga) error `json:"-"`
+	Id          string               `json:"-"`
+	MessagesIds []string             `json:"ids,omitempty"`
+	Command     string               `json:"cmd,omitempty"`
+	ChatId      string               `json:"cid,omitempty"`
+	UserId      int                  `json:"uid,omitempty"`
+	Num         uint                 `json:"num,omitempty"`
+	Compensate  func(sg *Saga) error `json:"-"`
 }
 
 type SagaOrchestrator interface {

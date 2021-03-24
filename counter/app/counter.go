@@ -20,6 +20,8 @@ func (a *App) consume(message []byte) {
 		return
 	}
 
+	log.Info("got event for saga " + saga.SagaId)
+
 	outbound := SagaOutboundMessage{
 		SagaId: saga.SagaId,
 		Action: saga.Command,
@@ -38,10 +40,21 @@ func (a *App) consume(message []byte) {
 			outbound.Status = statusAbort
 		}
 	}
+
+	out, err := json.Marshal(&outbound)
+	if err != nil {
+		log.WithError(err).Error("failed to unmarshal the outbound message")
+		return
+	}
+
+	log.Info("publish commit for saga " + saga.SagaId)
+	if err = a.producer.Publish(context.Background(), out); err != nil {
+		log.WithError(err).Error("failed to publish the outbound message")
+	}
 }
 
 func (a *App) increment(key string, num uint) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*1)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Microsecond*500)
 	defer cancel()
 
 	_, err := a.storage.Incr(ctx, key, int64(num))
@@ -50,10 +63,10 @@ func (a *App) increment(key string, num uint) error {
 }
 
 func (a *App) decrement(key string, num uint) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*1)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Microsecond*500)
 	defer cancel()
 
-	_, err := a.storage.Incr(ctx, key, int64(num))
+	_, err := a.storage.Decr(ctx, key, int64(num))
 
 	return err
 }

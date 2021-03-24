@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	defaultCounterTopic  = "counter"
-	defaultDialogueTopic = "dialogue"
+	defaultCounterTopic  = "counterBus"
+	defaultDialogueTopic = "dialogueBus"
 )
 
 // Config struct holds application's parameters
@@ -17,7 +17,7 @@ type Config struct {
 	CounterTopic  string
 	DebugMode     bool
 	RedisDsn      string
-	RedisPassword string
+	RedisPass     string
 }
 
 func PopulateConfig() (*Config, error) {
@@ -27,8 +27,8 @@ func PopulateConfig() (*Config, error) {
 		err   error
 	)
 
-	if cfg.QueueDsn, exist = os.LookupEnv("BUS_DSN"); !exist {
-		return nil, errors.New("ENV `BUS_DSN` should be specified")
+	if cfg.QueueDsn, exist = os.LookupEnv("QUEUE_DSN"); !exist {
+		return nil, errors.New("ENV `QUEUE_DSN` should be specified")
 	}
 
 	if cfg.CounterTopic, exist = os.LookupEnv("CNT_TOPIC"); !exist {
@@ -41,7 +41,7 @@ func PopulateConfig() (*Config, error) {
 	if cfg.RedisDsn, exist = os.LookupEnv("REDIS_DSN"); !exist {
 		return nil, errors.New("ENV `REDIS_DSN` should be specified")
 	}
-	cfg.RedisPassword = os.Getenv("REDIS_PASS")
+	cfg.RedisPass = os.Getenv("REDIS_PASS")
 
 	tmp, exist := os.LookupEnv("DEBUG")
 	cfg.DebugMode = exist && tmp == "true"

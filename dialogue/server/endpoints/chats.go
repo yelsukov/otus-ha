@@ -68,8 +68,8 @@ func fetchChats(s storages.ChatStorage, redis entities.RedisClient) http.Handler
 
 		if redis != nil {
 			// TODO stupid idea but fast realisation. Think how to improve it
-			for _, chat := range chats {
-				setUnreadNum(&chat, uid, redis)
+			for i := 0; i < len(chats); i++ {
+				setUnreadNum(&chats[i], uid, redis)
 			}
 		}
 		server.ResponseWithList(w, prepareChatsList(chats))
@@ -181,7 +181,8 @@ func addUsers(cs storages.ChatStorage) http.HandlerFunc {
 func setUnreadNum(chat *entities.Chat, uid int, redis entities.RedisClient) {
 	redisCtx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
 	defer cancel()
-	if cnt, err := redis.Get(redisCtx, "chat:"+chat.Id.String()+":"+strconv.Itoa(uid)).Result(); err == nil {
+	key := "cnt:" + chat.Id.Hex() + ":" + strconv.Itoa(uid)
+	if cnt, err := redis.Get(redisCtx, key).Result(); err == nil {
 		chat.Unread, _ = strconv.Atoi(cnt)
 	}
 }

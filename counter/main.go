@@ -44,13 +44,11 @@ func main() {
 
 	log.Info("connecting to db...")
 	storage := redis.New()
-	if err = storage.Connect(ctx, cfg.RedisDsn, cfg.RedisDsn); err != nil {
+	if err = storage.Connect(ctx, cfg.RedisDsn, cfg.RedisPass); err != nil {
 		log.WithError(err).Error("failed to connect to Storage")
 		return
 	}
 	log.Info("successfully connected to db")
-
-	log.Info("starting queue consumer")
 
 	service := app.New(
 		kafka.NewProducer(cfg.QueueDsn, cfg.DialogueTopic),
@@ -62,19 +60,21 @@ func main() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGKILL, syscall.SIGINT, syscall.SIGTERM)
 	// Run routine for gracefully shut down
-	go func() {
+	go func(s *app.App) {
 		sig := <-c
 		log.Infof("received the %+v call, shutting down", sig)
 		signal.Stop(c)
 
-		service.Stop()
-	}()
+		s.Stop()
+	}(service)
 
 	// Lock until server shutdown
+	log.Info("application ready and listening for events")
 	if err = service.Run(ctx); err != nil {
-		log.WithError(err).Error("failed to start server")
+		log.WithError(err).Error("fail on application runtime")
 		service.Stop()
 	}
 	// cancel the base context
 	cancel()
+	log.Info("Shutdown completed!")
 }

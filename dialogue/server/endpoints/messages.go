@@ -14,6 +14,7 @@ import (
 
 	"github.com/yelsukov/otus-ha/dialogue/domain/entities"
 	"github.com/yelsukov/otus-ha/dialogue/domain/storages"
+	"github.com/yelsukov/otus-ha/dialogue/saga/queues"
 	"github.com/yelsukov/otus-ha/dialogue/server"
 )
 
@@ -87,42 +88,54 @@ func fetchMessages(ms storages.MessageStorage, cs storages.ChatStorage, so entit
 
 		server.ResponseWithList(w, prepareMessageList(messages))
 
-		if !so.IsActive() {
-			return
-		}
-		unread := make([]string, 10)
-		for _, m := range messages {
-			if m.UserId != uid && !m.Read {
-				unread = append(unread, m.Id.String())
+		go func() {
+			if !so.IsActive() {
+				return
 			}
-		}
-		if len(unread) == 0 {
-			return
-		}
 
-		num, err := ms.SetReadFlag(unread, true)
-		if err != nil {
-			log.WithError(err).Error("failed to update read flag for messages")
-			return
-		}
-		err = so.ExecuteSaga(context.Background(), &entities.Saga{
-			Id:        "read-msg-" + strconv.Itoa(time.Now().Nanosecond()),
-			DialogTrx: entities.DialogTrx{MessagesIds: unread},
-			CounterTrx: entities.CounterTrx{
-				Command: "dec",
-				ChatId:  chat.Id.String(),
-				UserId:  uid,
-				Num:     uint(num),
-			},
-			// Compensate transaction for Read flag update
-			Compensate: func(s *entities.Saga) error {
-				_, err := ms.SetReadFlag(s.DialogTrx.MessagesIds, false)
-				return err
-			},
-		})
-		if err != nil {
-			log.WithError(err).Error("failed to execute saga")
-		}
+			var unreadIds []primitive.ObjectID
+			for _, m := range messages {
+				if m.UserId != uid && !m.Read {
+					unreadIds = append(unreadIds, m.Id)
+				}
+			}
+			if len(unreadIds) == 0 {
+				return
+			}
+
+			num, err := ms.SetReadFlag(unreadIds, true)
+			if err != nil {
+				log.WithError(err).Error("failed to update read flag for messages")
+				return
+			}
+			if num == 0 {
+				return
+			}
+			unread := make([]string, len(unreadIds), len(unreadIds))
+			for i, id := range unreadIds {
+				unread[i] = id.Hex()
+			}
+			err = so.ExecuteSaga(context.Background(), &entities.Saga{
+				Id:          "read-msg-" + strconv.Itoa(time.Now().Nanosecond()),
+				MessagesIds: unread,
+				Command:     queues.CmdDecr,
+				ChatId:      chat.Id.Hex(),
+				UserId:      uid,
+				Num:         uint(num),
+				// Compensate transaction for Read flag update
+				Compensate: func(s *entities.Saga) error {
+					ids := make([]primitive.ObjectID, len(s.MessagesIds), len(s.MessagesIds))
+					for i, id := range s.MessagesIds {
+						ids[i], _ = primitive.ObjectIDFromHex(id)
+					}
+					_, err := ms.SetReadFlag(ids, false)
+					return err
+				},
+			})
+			if err != nil {
+				log.WithError(err).Error("failed to execute saga")
+			}
+		}()
 	}
 }
 
@@ -168,25 +181,25 @@ func createMessage(ms storages.MessageStorage, cs storages.ChatStorage, so entit
 
 		server.ResponseWithOk(w, &messageResponse{"message", &message})
 
-		if !so.IsActive() {
-			return
-		}
-		users := chat.UsersExceptOne(message.UserId)
-		if users == nil {
-			log.Warnf("message user %d not found in chat %s", message.UserId, chat.Id)
-			return
-		}
-		err = so.ExecuteSaga(context.Background(), &entities.Saga{
-			Id: "new-msg-" + strconv.Itoa(time.Now().Nanosecond()),
-			CounterTrx: entities.CounterTrx{
-				Command: "incr",
-				ChatId:  message.ChatId.String(),
+		go func() {
+			if !so.IsActive() {
+				return
+			}
+			users := chat.UsersExceptOne(message.UserId)
+			if users == nil {
+				log.Warnf("message user %d not found in chat %s", message.UserId, chat.Id)
+				return
+			}
+			err = so.ExecuteSaga(context.Background(), &entities.Saga{
+				Id:      "new-msg:" + strconv.Itoa(time.Now().Nanosecond()),
+				Command: queues.CmdIncr,
+				ChatId:  message.ChatId.Hex(),
 				UserId:  users[0],
 				Num:     1,
-			},
-		})
-		if err != nil {
-			log.WithError(err).Error("failed to execute saga")
-		}
+			})
+			if err != nil {
+				log.WithError(err).Error("failed to execute saga")
+			}
+		}()
 	}
 }

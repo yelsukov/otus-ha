@@ -26,10 +26,10 @@ down:
 	sudo docker-compose -f docker-compose.${TYPE}.yml down -v
 
 upFull:
-	sudo docker-compose -f docker-compose.news.yml -f docker-compose.dialogue.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml up --build -d
+	sudo docker-compose -f docker-compose.news.yml -f docker-compose.dialogue.yml -f docker-compose.cache.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml up --build -d
 
 downFull:
-	sudo docker-compose -f docker-compose.news.yml -f docker-compose.dialogue.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml down -v
+	sudo docker-compose -f docker-compose.news.yml -f docker-compose.dialogue.yml -f docker-compose.cache.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml down -v
 
 startReplica:
 	sudo docker-compose -f docker-compose.proxysql.yml up --build -d
@@ -44,22 +44,28 @@ stopTaran:
 	sudo docker-compose -f docker-compose.tarantool.yml -f docker-compose.queue.yml down -v
 
 upCluster:
-	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.cluster.yml -f docker-compose.haproxy.yml -f docker-compose.queue.yml up --build -d
+	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.cache.yml -f docker-compose.cluster.yml -f docker-compose.haproxy.yml -f docker-compose.queue.yml up --build -d
 
 downCluster:
-	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.cluster.yml -f docker-compose.haproxy.yml -f docker-compose.queue.yml down -v
+	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.cache.yml -f docker-compose.cluster.yml -f docker-compose.haproxy.yml -f docker-compose.queue.yml down -v
 
 upWithConsul:
-	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml up --build -d
+	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.cache.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml up --build -d
 
 downWithConsul:
-	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml down -v
+	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.cache.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml down -v
 
 upWithMonitoring:
-	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.monitoring.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml up --build -d
+	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.cache.yml -f docker-compose.monitoring.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml up --build -d
 
 downWithMonitoring:
-	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.monitoring.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml down -v
+	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.cache.yml -f docker-compose.monitoring.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml down -v
+
+upSagaDialogue:
+	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.cache.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml up --build -d
+
+downSagaDialogue:
+	sudo docker-compose -f docker-compose.dialogue.yml -f docker-compose.cache.yml -f docker-compose.standalone.yml -f docker-compose.queue.yml down -v
 
 fmt:
 	@echo "+ $@"

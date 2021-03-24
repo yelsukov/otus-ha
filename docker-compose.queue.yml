@@ -14,7 +14,7 @@ services:
     container_name: kafka
     restart: unless-stopped
     environment:
-      KAFKA_CREATE_TOPICS: "${BUS_TOPIC}:3:1"
+      KAFKA_CREATE_TOPICS: "${BUS_TOPIC}:3:1,dialogueBus:1:1,counterBus:1:1"
       KAFKA_ADVERTISED_HOST_NAME: kafka
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
     #      JMX_PORT: 1099

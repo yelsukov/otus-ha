@@ -7,12 +7,14 @@ import (
 )
 
 const (
-	defDbName      = "otus"
-	defServiceName = "dialogue"
-	defServiceId   = "dialogue"
-	defServiceHost = "http://dialogue"
-	defServicePort = "8081"
-	defConsulDsn   = "consul"
+	defDbName            = "otus"
+	defServiceName       = "dialogue"
+	defServiceId         = "dialogue"
+	defServiceHost       = "http://dialogue"
+	defServicePort       = "8081"
+	defConsulDsn         = "consul"
+	defaultCounterTopic  = "counterBus"
+	defaultDialogueTopic = "dialogueBus"
 )
 
 // Config struct holds application's parameters
@@ -34,7 +36,9 @@ type Config struct {
 	RedisDsn  string
 	RedisPass string
 
-	KafkaBrokers string
+	QueueDsn      string
+	DialogueTopic string
+	CounterTopic  string
 
 	DebugMode bool
 }
@@ -51,6 +55,11 @@ func PopulateConfig() (*Config, error) {
 	if cfg.DbName, exist = os.LookupEnv("DB_NAME"); !exist {
 		cfg.DbName = defDbName
 	}
+
+	if cfg.RedisDsn, exist = os.LookupEnv("REDIS_DSN"); !exist {
+		return nil, errors.New("ENV `REDIS_DSN` should be specified")
+	}
+	cfg.RedisPass = os.Getenv("REDIS_PASS")
 
 	if cfg.ServiceName, exist = os.LookupEnv("SERVICE_NAME"); !exist {
 		cfg.ServiceName = defServiceName
@@ -73,6 +82,16 @@ func PopulateConfig() (*Config, error) {
 	cfg.ZabbixHost = os.Getenv("ZBX_HOST")
 	if zbxPort := os.Getenv("ZBX_PORT"); zbxPort != "" {
 		cfg.ZabbixPort, _ = strconv.Atoi(zbxPort)
+	}
+
+	if cfg.QueueDsn, exist = os.LookupEnv("QUEUE_DSN"); !exist {
+		return nil, errors.New("ENV `QUEUE_DSN` should be specified")
+	}
+	if cfg.CounterTopic, exist = os.LookupEnv("CNT_TOPIC"); !exist {
+		cfg.CounterTopic = defaultCounterTopic
+	}
+	if cfg.DialogueTopic, exist = os.LookupEnv("DLG_TOPIC"); !exist {
+		cfg.CounterTopic = defaultDialogueTopic
 	}
 
 	tmp, exist := os.LookupEnv("DEBUG")

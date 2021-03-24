@@ -13,11 +13,11 @@ import (
 
 type Orchestrator struct {
 	store  storages.Storage
-	queue  queues.Queue
+	queue  queues.BusQueue
 	active bool
 }
 
-func NewOrchestrator(store storages.Storage, queue queues.Queue) *Orchestrator {
+func NewOrchestrator(store storages.Storage, queue queues.BusQueue) *Orchestrator {
 	return &Orchestrator{store, queue, false}
 }
 
@@ -40,7 +40,7 @@ func (o *Orchestrator) Start(ctx context.Context) {
 		o.queue.Listen(ctx, o.onEvent)
 		o.active = false
 	}()
-	log.Warn("saga orchestrator has been started")
+	log.Info("saga orchestrator has been started")
 }
 
 func (o *Orchestrator) ExecuteSaga(ctx context.Context, saga *entities.Saga) error {
@@ -48,20 +48,27 @@ func (o *Orchestrator) ExecuteSaga(ctx context.Context, saga *entities.Saga) err
 		return errors.New("orchestrator not active")
 	}
 	if err := o.store.Save(ctx, saga); err != nil {
+		o.rollbackSaga(saga)
 		return err
 	}
 
-	return o.queue.Publish(ctx, saga)
+	err := o.queue.Publish(ctx, saga)
+	if err != nil {
+		o.rollbackSaga(saga)
+	}
+
+	return err
 }
 
 func (o *Orchestrator) commitSaga(saga *entities.Saga) {
+	log.Info("committing saga " + saga.Id)
 	if err := o.store.Del(context.Background(), saga.Id); err != nil {
 		log.WithError(err).Error("failed to finalize saga")
 	}
 }
 
 func (o *Orchestrator) rollbackSaga(saga *entities.Saga) {
-	log.Infof("rolling back saga %s", saga.Id)
+	log.Info("rolling back saga " + saga.Id)
 	if saga.Compensate == nil {
 		log.Infof("saga %s have no compensation", saga.Id)
 		return
@@ -76,6 +83,7 @@ func (o *Orchestrator) rollbackSaga(saga *entities.Saga) {
 }
 
 func (o *Orchestrator) onEvent(event queues.SagaInboundMessage) {
+	log.Info("got event for saga " + event.SagaId)
 	saga, err := o.store.Get(context.Background(), event.SagaId)
 	if err != nil {
 		log.WithError(err).Error("failed to read saga from store")

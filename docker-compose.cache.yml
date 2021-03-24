@@ -1,0 +1,21 @@
+version: '2.4'
+
+services:
+
+  redis:
+    image: redis:6.0.10
+    container_name: redis
+    ports:
+      - 6379:6379
+    restart: unless-stopped
+    healthcheck:
+      interval: 30s
+      retries: 3
+      test: [ "CMD", "redis-cli","ping" ]
+      timeout: 10s
+    networks:
+      - cache
+
+networks:
+  cache:
+    name: cache

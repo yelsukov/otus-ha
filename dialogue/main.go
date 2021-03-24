@@ -101,16 +101,15 @@ func main() {
 		log.WithError(err).Fatal("failed to start consul agent")
 	}
 
-	log.Info("connecting to redis...", cfg.RedisDsn)
+	log.Info("connecting to redis...")
 	clientRedis, err := cache.Connect(ctx, cfg.RedisDsn, cfg.RedisPass)
 	if err != nil {
-		log.WithError(err).Error("failed to connect to redis")
-	} else {
-		log.Info("successfully connected to redis")
+		log.WithError(err).Fatal("failed to connect to redis")
 	}
+	log.Info("successfully connected to redis")
 
 	log.Info("starting saga orchestrator...")
-	queue := kafka.NewListener(cfg.KafkaBrokers, "dialogue")
+	queue := kafka.NewBus(cfg.QueueDsn, cfg.CounterTopic, cfg.DialogueTopic)
 	sgStore := redis.NewSagaStorageRedis(clientRedis)
 	sagaOrc := saga.NewOrchestrator(sgStore, queue)
 	sagaOrc.Start(ctx)

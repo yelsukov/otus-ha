@@ -21,7 +21,7 @@ RUN adduser \
     --uid "${UID}" \
     "${USER}"
 
-WORKDIR $GOPATH/src/dialogue
+WORKDIR $GOPATH/src/counter
 
 # Redundant copy for caching vendors download
 COPY go.mod go.sum ./
@@ -31,13 +31,8 @@ RUN go mod verify
 
 COPY . .
 
-# Specify version
-ARG VERSION
-# Specify the backend token
-ARG TOKEN
-
 # Build the binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s -X github.com/yelsukov/otus-ha/dialogue/vars.VERSION=${VERSION} -X github.com/yelsukov/otus-ha/dialogue/vars.TOKEN=${TOKEN}" -o /go/bin/dialogue
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /go/bin/counter
 
 ###############################
 # STEP 2: build a small image #
@@ -45,15 +40,14 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s -X github.com
 FROM scratch
 
 # Import from builder.
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
 
 # Copy binary file
-COPY --from=builder /go/bin/dialogue /go/bin/dialogue
+COPY --from=builder /go/bin/counter /go/bin/counter
 
 # Use an unprivileged user.
 USER ${USER}:${USER}
 
 # Run the binary.
-ENTRYPOINT ["/go/bin/dialogue"]
+ENTRYPOINT ["/go/bin/counter"]

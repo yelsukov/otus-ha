@@ -9,5 +9,5 @@ type MessageStorage interface {
 	InsertOne(message *entities.Message) error
 	ReadOne(id *primitive.ObjectID) (*entities.Message, error)
 	ReadMany(chatId *primitive.ObjectID, lastId *primitive.ObjectID, limit uint32) ([]entities.Message, error)
-	SetReadFlag(ids []string, flag bool) (int64, error)
+	SetReadFlag(ids []primitive.ObjectID, flag bool) (int64, error)
 }

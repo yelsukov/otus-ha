@@ -3,6 +3,8 @@ package queues
 const (
 	StatusSuccess = 1
 	StatusAbort   = 2
+	CmdIncr       = "incr"
+	CmdDecr       = "decr"
 )
 
 type SagaInboundMessage struct {

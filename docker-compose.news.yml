@@ -15,20 +15,6 @@ services:
     networks:
       - news
 
-  redis:
-    image: redis:6.0.10
-    container_name: redis
-    ports:
-      - 6379:6379
-    restart: unless-stopped
-    healthcheck:
-      interval: 30s
-      retries: 3
-      test: [ "CMD", "redis-cli","ping" ]
-      timeout: 10s
-    networks:
-      - news
-
   news:
     container_name: news
     build:
@@ -51,10 +37,9 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
-      redis:
-        condition: service_healthy
     networks:
       - queue
+      - cache
       - inner
       - news
 
@@ -64,6 +49,9 @@ networks:
     external: true
   inner:
     name: inner
+    external: true
+  cache:
+    name: cache
     external: true
   news:
     name: news

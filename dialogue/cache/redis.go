@@ -15,10 +15,8 @@ func Connect(ctx context.Context, uri string, password string) (*redis.Client, e
 		MaxRetries: 2,
 	})
 	var err error
-	ctxPing, cancel := context.WithTimeout(ctx, time.Millisecond*500)
-	defer cancel()
 	for i := 0; i < 10; i++ {
-		if err = client.Ping(ctxPing).Err(); err == nil {
+		if err = client.Ping(ctx).Err(); err == nil {
 			break
 		}
 		time.Sleep(1 * time.Second)
