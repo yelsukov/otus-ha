@@ -37,8 +37,7 @@
 1. [docker-compose.dialogue.yml](../../docker-compose.dialogue.yml) - сервисы диалогов и счетчиков + mongo shared
    cluster;
 2. [docker-compose.cache.yml](../../docker-compose.cache.yml) - просто redis;
-3. [docker-compose.standalone.yml](../../docker-compose.standalone.yml) - Точка входа API Gateway в единичном экземпляре
-   + обвязка из mysql, consul и web-интерфейса;
+3. [docker-compose.standalone.yml](../../docker-compose.standalone.yml) - Точка входа API Gateway в единичном экземпляре + обвязка из mysql, consul и web-интерфейса;
 3. [docker-compose.queue.yml](../../docker-compose.queue.yml) - kafka + zookeeper.
 
 <a name="architecture"></a>
@@ -272,10 +271,7 @@
 {
   "object": "chat",
   "id": "605c42396e1aaa81e0b66cb5",
-  "users": [
-    3,
-    4
-  ],
+  "users": [3, 4],
   "unread": 0,
   "createdAt": 1616659001
 }
@@ -330,10 +326,7 @@
 {
   "object": "chat",
   "id": "605c42396e1aaa81e0b66cb5",
-  "users": [
-    3,
-    4
-  ],
+  "users": [3, 4],
   "unread": 0,
   "createdAt": 1616659001
 }
@@ -370,10 +363,7 @@
 {
   "object": "chat",
   "id": "605c42396e1aaa81e0b66cb5",
-  "users": [
-    3,
-    4
-  ],
+  "users": [3, 4],
   "unread": 2,
   "createdAt": 1616659001
 }
@@ -391,10 +381,7 @@
     {
       "object": "chat",
       "id": "605c42396e1aaa81e0b66cb5",
-      "users": [
-        3,
-        4
-      ],
+      "users": [3, 4],
       "unread": 2,
       "createdAt": 1616659001
     }
@@ -413,10 +400,7 @@
 {
   "object": "chat",
   "id": "605c42396e1aaa81e0b66cb5",
-  "users": [
-    3,
-    4
-  ],
+  "users": [3, 4],
   "unread": 1,
   "createdAt": 1616659001
 }
@@ -476,10 +460,7 @@
 {
   "object": "chat",
   "id": "605c42396e1aaa81e0b66cb5",
-  "users": [
-    3,
-    4
-  ],
+  "users": [3, 4],
   "unread": 0,
   "createdAt": 1616659001
 }
@@ -527,10 +508,7 @@
 {
   "object": "chat",
   "id": "605c42396e1aaa81e0b66cb5",
-  "users": [
-    3,
-    4
-  ],
+  "users": [3, 4],
   "unread": 2,
   "createdAt": 1616659001
 }
@@ -584,10 +562,7 @@
 {
   "object": "chat",
   "id": "605c42396e1aaa81e0b66cb5",
-  "users": [
-    3,
-    4
-  ],
+  "users": [3, 4],
   "unread": 2,
   "createdAt": 1616659001
 }
