@@ -44,3 +44,7 @@ func (a *App) Stop() {
 	}
 	log.Info("application has been stopped")
 }
+
+func (a *App) Stopped() bool {
+	return a.stopped
+}

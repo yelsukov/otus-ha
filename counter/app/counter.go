@@ -54,7 +54,7 @@ func (a *App) consume(message []byte) {
 }
 
 func (a *App) increment(key string, num uint) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Microsecond*500)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	_, err := a.storage.Incr(ctx, key, int64(num))
@@ -63,7 +63,7 @@ func (a *App) increment(key string, num uint) error {
 }
 
 func (a *App) decrement(key string, num uint) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Microsecond*500)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	_, err := a.storage.Decr(ctx, key, int64(num))

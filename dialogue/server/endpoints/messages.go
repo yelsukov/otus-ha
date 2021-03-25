@@ -116,7 +116,7 @@ func fetchMessages(ms storages.MessageStorage, cs storages.ChatStorage, so entit
 				unread[i] = id.Hex()
 			}
 			err = so.ExecuteSaga(context.Background(), &entities.Saga{
-				Id:          "read-msg-" + strconv.Itoa(time.Now().Nanosecond()),
+				Id:          "read-msg-" + strconv.Itoa(int(time.Now().UnixNano())),
 				MessagesIds: unread,
 				Command:     queues.CmdDecr,
 				ChatId:      chat.Id.Hex(),
@@ -191,7 +191,7 @@ func createMessage(ms storages.MessageStorage, cs storages.ChatStorage, so entit
 				return
 			}
 			err = so.ExecuteSaga(context.Background(), &entities.Saga{
-				Id:      "new-msg:" + strconv.Itoa(time.Now().Nanosecond()),
+				Id:      "new-msg:" + strconv.Itoa(int(time.Now().UnixNano())),
 				Command: queues.CmdIncr,
 				ChatId:  message.ChatId.Hex(),
 				UserId:  users[0],

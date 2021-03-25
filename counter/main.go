@@ -72,6 +72,8 @@ func main() {
 	log.Info("application ready and listening for events")
 	if err = service.Run(ctx); err != nil {
 		log.WithError(err).Error("fail on application runtime")
+	}
+	if !service.Stopped() {
 		service.Stop()
 	}
 	// cancel the base context

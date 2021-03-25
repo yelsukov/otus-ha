@@ -68,7 +68,7 @@ func (m *MessageStorage) ReadMany(chatId, lastId *primitive.ObjectID, limit uint
 func (m *MessageStorage) SetReadFlag(ids []primitive.ObjectID, flag bool) (int64, error) {
 	res, err := m.col.UpdateMany(m.ctx,
 		bson.M{"_id": bson.M{"$in": ids}},
-		bson.M{"$set": bson.M{"read": flag}},
+		bson.M{"$set": bson.M{"rdn": flag}},
 	)
 	if err != nil {
 		return 0, err

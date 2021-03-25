@@ -63,8 +63,10 @@ func (o *Orchestrator) ExecuteSaga(ctx context.Context, saga *entities.Saga) err
 func (o *Orchestrator) commitSaga(saga *entities.Saga) {
 	log.Info("committing saga " + saga.Id)
 	if err := o.store.Del(context.Background(), saga.Id); err != nil {
-		log.WithError(err).Error("failed to finalize saga")
+		log.WithError(err).Error("failed to finalize saga " + saga.Id)
+		return
 	}
+	log.Infof("saga %s has been committed", saga.Id)
 }
 
 func (o *Orchestrator) rollbackSaga(saga *entities.Saga) {
@@ -78,8 +80,10 @@ func (o *Orchestrator) rollbackSaga(saga *entities.Saga) {
 		return
 	}
 	if err := o.store.Del(context.Background(), saga.Id); err != nil {
-		log.WithError(err).Error("failed to finalize saga")
+		log.WithError(err).Errorf("failed to finalize saga %s", saga.Id)
+		return
 	}
+	log.Infof("saga %s has been rolled back", saga.Id)
 }
 
 func (o *Orchestrator) onEvent(event queues.SagaInboundMessage) {
