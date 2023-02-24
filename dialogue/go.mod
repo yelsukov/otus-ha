@@ -5,7 +5,6 @@ go 1.14
 require (
 	github.com/blacked/go-zabbix v0.0.0-20170118040903-3c6a95ec4fdc
 	github.com/go-chi/chi v4.1.2+incompatible
-	github.com/go-redis/redis v6.15.9+incompatible // indirect
 	github.com/go-redis/redis/v8 v8.8.0
 	github.com/hashicorp/consul/api v1.8.1
 	github.com/mackerelio/go-osstat v0.1.0
@@ -14,5 +13,5 @@ require (
 	github.com/sirupsen/logrus v1.7.0
 	github.com/slok/go-http-metrics v0.9.0
 	go.mongodb.org/mongo-driver v1.4.5
-	golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee // indirect
+	golang.org/x/crypto v0.1.0 // indirect
 )
