@@ -11,5 +11,5 @@ require (
 	github.com/segmentio/kafka-go v0.4.9
 	github.com/sirupsen/logrus v1.7.0
 	github.com/tarantool/go-tarantool v0.0.0-20201220111423-77ce7d9a407a
-	golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee
+	golang.org/x/crypto v0.1.0
 )
